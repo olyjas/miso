@@ -61,7 +61,9 @@ if [[ ! -e "${DATA_DIR}/BinauralCuratedDataset" ]]; then
 fi
 
 # ============================================================
-# Step 2: TSE Evaluation (Table 1 subset — 2 models × 2000 samples)
+# Step 2: TSE Evaluation (Table 1 subset — 2 models × 50 samples)
+# Mini dataset has ~20 files per split (1 per class), so we use 50 samples
+# to avoid redundant re-sampling of the same files.
 # ============================================================
 echo ""
 echo "========== Step 2: TSE Evaluation (Table 1) =========="
@@ -73,7 +75,7 @@ for model in orange_pi waveformer; do
         --model "${model}" \
         --data_dir "${DATA_DIR}" \
         --output_dir "${OUTPUT_DIR}/tse/${model}" \
-        --num_samples 2000
+        --num_samples 50
 done
 
 # ============================================================
@@ -83,9 +85,9 @@ echo ""
 echo "========== Step 3: SED Evaluation (Fig. 11) =========="
 SED_COMMON="--pretrained ooshyun/sound_event_detection --model finetuned_ast \
     --dataset misophonia --root_dataset_dir ${DATA_DIR} \
-    --sr 16000 --duration 5 --samples 2000 \
+    --sr 16000 --duration 5 --samples 50 \
     --num_noise_min 1 --num_noise_max 1 \
-    --find_thresholds --val_samples 2000"
+    --find_thresholds --val_samples 50"
 
 echo ""
 echo "--- SED tgt=1 (best case) --- $(date)"

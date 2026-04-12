@@ -96,7 +96,7 @@ For quick pipeline verification without downloading the full 130 GB, use the
 one-shot script that downloads, extracts, and evaluates automatically:
 
 ```bash
-# Download + extract + evaluate (~30 min on single GPU)
+# Download + extract + evaluate (~5 min on single GPU, 50 samples)
 bash scripts/eval/eval_mini.sh [data_dir] [output_dir]
 ```
 
