@@ -92,11 +92,17 @@ tar xzf data/prebuilt/metadata.tar.gz -C /path/to/BinauralCuratedDataset/
 
 #### Mini Dataset (~250 MB)
 
-For quick pipeline verification without downloading the full 130 GB, a pre-built
-mini dataset is available on HuggingFace:
+For quick pipeline verification without downloading the full 130 GB, use the
+one-shot script that downloads, extracts, and evaluates automatically:
 
 ```bash
-# Download pre-built mini dataset
+# Download + extract + evaluate (~30 min on single GPU)
+bash scripts/eval/eval_mini.sh [data_dir] [output_dir]
+```
+
+Or download manually:
+
+```bash
 wget https://huggingface.co/datasets/ooshyun/fine-grained-soundscape/resolve/main/BinauralCuratedDataset_mini.tar.gz
 tar xzf BinauralCuratedDataset_mini.tar.gz -C /path/to/data_dir/
 ```
@@ -105,7 +111,7 @@ This contains 1 audio file per class per split, all HRTF files, and `start_times
 preserving the exact directory structure. All eval scripts work with the mini dataset
 (pass the **parent** of `BinauralCuratedDataset_mini/` as `--data_dir`).
 
-Alternatively, generate from the full dataset with more samples:
+To generate a custom mini dataset from the full dataset with more samples:
 
 ```bash
 python scripts/create_mini_dataset.py \
