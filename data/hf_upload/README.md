@@ -1,4 +1,8 @@
 ---
+configs:
+  - config_name: default
+    data_files: []
+viewer: false
 license: other
 task_categories:
   - audio-classification
