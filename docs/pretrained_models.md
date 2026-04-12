@@ -1,6 +1,6 @@
 # Pretrained Models
 
-All pretrained models for **MobiSys 2026 #198 "Aurchestra"**.
+All pretrained models for **MobiSys 2026 #198 "Fine-grained Soundscape Control for Augmented Hearing"**.
 
 ## TSE (Target Sound Extraction)
 

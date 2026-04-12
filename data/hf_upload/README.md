@@ -15,7 +15,7 @@ tags:
 Datasets for training fine-grained soundscape control models
 (Target Sound Extraction + Sound Event Detection).
 
-Paper: "Aurchestra" (MobiSys 2026 #198)
+Paper: "Fine-grained Soundscape Control for Augmented Hearing" (MobiSys 2026 #198)
 
 ## Hosted Datasets
 
@@ -70,9 +70,10 @@ python data/setup_data.py --output_dir ./data --manual_dir ./manual_downloads
 If you use these datasets, please cite the original dataset papers and:
 
 ```bibtex
-@inproceedings{aurchestra2026,
-  title={Aurchestra: Fine-Grained Soundscape Control for Augmented Hearing},
-  booktitle={MobiSys},
+@inproceedings{oh2026fine,
+  title={Fine-Grained Soundscape Control for Augmented Hearing},
+  author={Oh, Seunghyun and Itani, Malek and Gauri, Aseem and Gollakota, Shyamnath},
+  booktitle={ACM MobiSys},
   year={2026}
 }
 ```
