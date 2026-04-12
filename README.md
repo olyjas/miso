@@ -86,6 +86,27 @@ tar xzf data/prebuilt/metadata.tar.gz -C /path/to/BinauralCuratedDataset/
 | [TAU-2019](https://zenodo.org/record/2589280) | Tampere Univ. custom (NC) | [Zenodo](https://zenodo.org/record/2589280) |
 | [CIPIC HRTF](https://www.ece.ucdavis.edu/cipic/spatial-sound/hrtf-data/) | Public Domain | [UC Davis](https://www.ece.ucdavis.edu/cipic/spatial-sound/hrtf-data/) |
 
+> **License note**: This repository (code) is MIT-licensed. Each dataset retains
+> its original license as listed above. Several datasets are **non-commercial only**
+> (ESC-50, musdb18, TAU-2019). Users must comply with each dataset's license terms.
+
+#### Mini Dataset (~250 MB)
+
+For quick pipeline verification without downloading the full 130 GB, you can create
+a mini subset from the full dataset:
+
+```bash
+python scripts/create_mini_dataset.py \
+    --input_dir /path/to/BinauralCuratedDataset \
+    --output_dir /path/to/data_dir/BinauralCuratedDataset_mini
+```
+
+This copies 1 audio file per class per split, all HRTF files, and `start_times.csv`,
+preserving the exact directory structure. All eval scripts work with the mini dataset
+(pass the **parent** of `BinauralCuratedDataset_mini/` as `--data_dir`).
+
+To increase coverage, use `--samples_per_class N` (default: 1).
+
 ### 3. Train
 
 All scripts take `<data_dir>` as the first argument — this should be the **parent** of

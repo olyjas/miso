@@ -214,7 +214,9 @@ def _load_waveformer(mp: dict, state_dict: dict) -> Any:
     model.eval()
 
     # Wrap in adapter that matches eval.py's dict input/output interface
-    wrapper = _WaveformerWrapper(model, nI=in_ch, nO=out_ch, label_len=wp.get("label_len", 20))
+    # nO=1: Waveformer extracts one source at a time (stereo→mono inside forward).
+    # eval.py uses nO==1 to trigger per-label inference for multi-source mixtures.
+    wrapper = _WaveformerWrapper(model, nI=in_ch, nO=1, label_len=wp.get("label_len", 20))
     return wrapper
 
 

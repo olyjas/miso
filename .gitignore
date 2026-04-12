@@ -22,6 +22,7 @@ logs/
 .DS_Store
 raw_datasets/
 BinauralCuratedDataset/
+BinauralCuratedDataset_mini/
 outputs/
 eval_results/
 *.crt
