@@ -53,6 +53,13 @@ else
     echo "Done: ${DATA_DIR}/BinauralCuratedDataset_mini/"
 fi
 
+# Model configs reference paths like "BinauralCuratedDataset/scaper_fmt/...".
+# Create a symlink so that data_dir/BinauralCuratedDataset → BinauralCuratedDataset_mini.
+if [[ ! -e "${DATA_DIR}/BinauralCuratedDataset" ]]; then
+    ln -s BinauralCuratedDataset_mini "${DATA_DIR}/BinauralCuratedDataset"
+    echo "Symlink: ${DATA_DIR}/BinauralCuratedDataset → BinauralCuratedDataset_mini"
+fi
+
 # ============================================================
 # Step 2: TSE Evaluation (Table 1 subset — 2 models × 2000 samples)
 # ============================================================
