@@ -40,6 +40,15 @@ bash scripts/setup_dataset.sh --output_dir /path/to/output \
     --tau_raw_dir /path/to/TAU-2019
 ```
 
+By default the `collect` stage fails fast (`FileNotFoundError`) if any
+opted-in source is missing both reference CSVs and raw data. To stage
+the pipeline incrementally, pass `--allow-missing`:
+
+```bash
+python data/setup_data.py --output_dir /path/to/output \
+    --datasets fsd50k,esc50 --allow-missing
+```
+
 After setup:
 ```
 /path/to/output/
@@ -135,6 +144,28 @@ bash scripts/train/run_tse.sh /path/to/data_dir [orange_pi|raspberry_pi|neuralai
 # SED (default: AST finetune config)
 bash scripts/train/run_sed.sh /path/to/data_dir [ast_finetune]
 ```
+
+The Python entry-points expose two additional flags — useful for
+fine-tuning from a published checkpoint or resuming a crashed run:
+
+```bash
+# Fine-tune from a HuggingFace pretrained model (yaml `model:` is ignored)
+python -m src.tse.train \
+    --config configs/tse/orange_pi.yaml --data_dir /path/to/data_dir \
+    --init_from "ooshyun/fine_grained_soundscape_control:orange_pi_film_all"
+
+# Or initialize weights from a local checkpoint (raw .pt or Lightning .ckpt)
+python -m src.tse.train --config ... --data_dir ... \
+    --init_from runs/tse/best.pt
+
+# Resume full training state (model + optimizer + scheduler + epoch)
+python -m src.tse.train --config ... --data_dir ... \
+    --resume_from runs/tse/last.ckpt
+```
+
+`--init_from` and `--resume_from` are mutually exclusive. Both are
+also wired into `python -m src.sed.train` with the same semantics
+(SED checkpoints live at `ooshyun/sound_event_detection`).
 
 ### 4. Evaluate (reproduce paper tables)
 
@@ -312,7 +343,26 @@ training:
 - **Lightning** (`src/trainer/lightning.py`): Full PyTorch Lightning Trainer with built-in logging, checkpointing, and multi-GPU support. Recommended for standard training.
 - **Fabric** (`src/trainer/fabric.py`): Lightweight Lightning Fabric backend with manual training loop control. Useful for custom training logic or debugging.
 
-Both backends share the same base interface (`src/trainer/base.py`) and are interchangeable without modifying model or dataset code.
+Both backends share the same base interface (`src/trainer/base.py`) and call
+`loss_fn(outputs, targets, inputs)` and `metrics_fn(outputs, targets, inputs)`
+on dictionary batches — task-specific tensor extraction lives in the
+per-task adapters in `src/tse/train.py` / `src/sed/train.py`. As a result,
+each `(backend × task)` combination is interchangeable without modifying
+model or dataset code.
+
+The optimizer and scheduler are also chosen by class path from the YAML
+(no factory enum), e.g.:
+
+```yaml
+training:
+  optimizer_name: "torch.optim.AdamW"
+  optimizer_params: { lr: 0.001, weight_decay: 0.0 }
+  scheduler_name: "torch.optim.lr_scheduler.ReduceLROnPlateau"
+  scheduler_params: { factor: 0.5, patience: 5 }
+```
+
+Any class importable as a dotted path (including third-party optimizers
+such as `lion_pytorch.Lion`) can be wired in by editing the YAML alone.
 
 ## Citation
 
