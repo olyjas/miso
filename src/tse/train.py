@@ -125,7 +125,15 @@ def _build_loss_fn(cfg: dict):
 
 
 def _build_metrics_fn():
-    """Trainer-facing adapter: (outputs, targets, inputs) -> dict of scalars."""
+    """Trainer-facing adapter: (outputs, targets, inputs) -> dict of scalars.
+
+    Only the first ``num_fg_labels`` channels per sample carry real GT
+    sources (``SoundscapeDataset.create_scene`` fills ``gt[0:n_fg]`` and
+    leaves the remaining ``num_output_channels - n_fg`` channels zero).
+    A per-sample arange mask of shape ``(B, C)`` selects active channels in
+    a single boolean index — fully vectorised, no Python loop over batch.
+    """
+    import torch
     from torchmetrics.functional import (
         scale_invariant_signal_distortion_ratio as si_sdr,
         signal_noise_ratio as snr_fn,
@@ -135,9 +143,25 @@ def _build_metrics_fn():
         est = outputs["output"]  # (B, C, T)
         gt = targets["target"]  # (B, C, T)
         mix = inputs["mixture"]  # (B, M, T)
-        mix_mono = mix.mean(dim=1, keepdim=True).expand_as(gt)
-        si_sdri = (si_sdr(est, gt) - si_sdr(mix_mono, gt)).mean()
-        snri = (snr_fn(est, gt) - snr_fn(mix_mono, gt)).mean()
+        num_fg = targets["num_fg_labels"].to(est.device)  # (B,) int
+
+        B, C, T = est.shape
+        mix_mono = mix.mean(dim=1, keepdim=True).expand(B, C, T)
+
+        ar = torch.arange(C, device=est.device)  # (C,)
+        mask = ar.unsqueeze(0) < num_fg.unsqueeze(1)  # (B, C) bool
+        flat_mask = mask.reshape(-1)  # (B*C,)
+
+        est_act = est.reshape(B * C, T)[flat_mask]
+        gt_act = gt.reshape(B * C, T)[flat_mask]
+        mix_act = mix_mono.reshape(B * C, T)[flat_mask]
+
+        if est_act.size(0) == 0:
+            zero = est.new_zeros(())
+            return {"si_sdri": zero, "snri": zero}
+
+        si_sdri = (si_sdr(est_act, gt_act) - si_sdr(mix_act, gt_act)).mean()
+        snri = (snr_fn(est_act, gt_act) - snr_fn(mix_act, gt_act)).mean()
         return {"si_sdri": si_sdri, "snri": snri}
 
     return adapter

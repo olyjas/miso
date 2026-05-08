@@ -15,6 +15,6 @@ class ChannelDropAugmentation:
 
         augmented_audio_data = audio_data
         for ch in channels_to_drop:
-            perturbed_audio_data[ch] *= 0
+            augmented_audio_data[ch] *= 0
 
         return augmented_audio_data, gt_audio

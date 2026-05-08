@@ -153,7 +153,7 @@ class MLPBlock(nn.Module):
         """
 
         if init_state is None:
-            init_state = self.init_buffers(x.shape[0], Q.device)
+            init_state = self.init_buffers(x.shape[0], x.device)
 
         B, T, Q, C = x.shape
 
@@ -182,9 +182,6 @@ class MLPBlock(nn.Module):
         intra_rnn = intra_rnn + input_  # [B, T, Q, C]
         out = intra_rnn
 
-        if debugDir is not None:
-            utils.save_tensor(debugDir[1], f"IntraRNNOut{debugDir[0]}.pt", intra_rnn)
-
         # Inter-frame processing
         input_ = intra_rnn  # [B, T, Q, C]
 
@@ -212,9 +209,6 @@ class MLPBlock(nn.Module):
         init_state["c0"] = c0
 
         inter_rnn = self.inter_linear(inter_rnn)  # [*, C]
-
-        if debugDir is not None:
-            utils.save_tensor(debugDir[1], f"InterRNNOut{debugDir[0]}.pt", inter_rnn)
 
         inter_rnn = inter_rnn + input_  # [B, T, Q, C]
 
