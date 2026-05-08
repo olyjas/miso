@@ -18,7 +18,7 @@ from torch.utils.data import DataLoader
 
 from src.datasets.soundscape_dataset import SoundscapeDataset
 from src.tse.loss import MultiResoFuseLoss
-from src.tse.net import Net
+from src.tse.net import Net, _import_attr
 from src.trainer import create_trainer
 
 logger = logging.getLogger(__name__)
@@ -181,18 +181,15 @@ def main(argv: list[str] | None = None) -> None:
         sum(p.numel() for p in model.parameters()) / 1e6,
     )
 
-    # Optimizer & scheduler
+    # Optimizer & scheduler — config-driven via dotted-path
     tc = cfg.get("training", {})
-    optimizer = torch.optim.AdamW(
+    optimizer = _import_attr(tc["optimizer_name"])(
         model.parameters(),
-        lr=tc.get("lr", 1e-3),
-        weight_decay=tc.get("weight_decay", 0.0),
+        **tc.get("optimizer_params", {}),
     )
-    sp = tc.get("scheduler_params", {})
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+    scheduler = _import_attr(tc["scheduler_name"])(
         optimizer,
-        factor=sp.get("factor", 0.5),
-        patience=sp.get("patience", 5),
+        **tc.get("scheduler_params", {}),
     )
 
     # Loss

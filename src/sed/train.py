@@ -21,6 +21,7 @@ from src.metrics.sed import ClassificationMetrics
 from src.sed.loss import get_loss_function
 from src.sed.model import ASTModel
 from src.trainer import create_trainer
+from src.tse.net import _import_attr
 
 logger = logging.getLogger(__name__)
 
@@ -101,26 +102,12 @@ def _build_optimizer(model: ASTModel, config: dict) -> torch.optim.Optimizer:
 def _build_scheduler(
     optimizer: torch.optim.Optimizer, config: dict
 ) -> torch.optim.lr_scheduler._LRScheduler:
-    """Create learning-rate scheduler from config."""
+    """Create learning-rate scheduler from config via dotted-path."""
     train_cfg = config["training"]
-    name = train_cfg.get("scheduler", "CosineAnnealingWarmRestarts")
-    params = train_cfg.get("scheduler_params", {})
-
-    if name == "CosineAnnealingWarmRestarts":
-        return torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
-            optimizer,
-            T_0=params.get("T_0", 10),
-            eta_min=params.get("eta_min", 1e-7),
-        )
-    elif name == "ReduceLROnPlateau":
-        return torch.optim.lr_scheduler.ReduceLROnPlateau(
-            optimizer,
-            mode=params.get("mode", "max"),
-            factor=params.get("factor", 0.5),
-            patience=params.get("patience", 5),
-        )
-    else:
-        raise ValueError(f"Unknown scheduler: {name}")
+    return _import_attr(train_cfg["scheduler_name"])(
+        optimizer,
+        **train_cfg.get("scheduler_params", {}),
+    )
 
 
 def _sed_metrics_fn(predictions, targets, config):

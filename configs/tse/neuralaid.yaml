@@ -40,11 +40,12 @@ data:
 training:
   backend: "lightning"
   max_epochs: 200
-  optimizer: "AdamW"
-  lr: 0.001
-  weight_decay: 0.0
   grad_clip: 1.0
-  scheduler: "ReduceLROnPlateau"
+  optimizer_name: "torch.optim.AdamW"
+  optimizer_params:
+    lr: 0.001
+    weight_decay: 0.0
+  scheduler_name: "torch.optim.lr_scheduler.ReduceLROnPlateau"
   scheduler_params:
     factor: 0.5
     patience: 5

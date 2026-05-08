@@ -27,7 +27,7 @@ training:
   head_lr: 0.001
   weight_decay: 0.01
   grad_clip: 1.0
-  scheduler: "CosineAnnealingWarmRestarts"
+  scheduler_name: "torch.optim.lr_scheduler.CosineAnnealingWarmRestarts"
   scheduler_params:
     T_0: 10
     eta_min: 0.0000001
