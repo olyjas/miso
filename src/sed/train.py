@@ -20,7 +20,7 @@ from src.datasets.soundscape_dataset import SoundscapeDataset
 from src.metrics.sed import ClassificationMetrics
 from src.sed.loss import get_loss_function
 from src.sed.model import ASTModel
-from src.trainer import create_trainer
+from src.trainer import create_trainer, normalize_state_dict
 from src.tse.net import _import_attr
 
 logger = logging.getLogger(__name__)
@@ -159,7 +159,55 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Path to YAML config file",
     )
     parser.add_argument("--data_dir", type=str, default=None, help="Override data root")
-    return parser.parse_args(argv)
+    parser.add_argument(
+        "--init_from", type=str, default=None,
+        help='Initialize weights only (fresh optimizer/scheduler). Formats:\n'
+             '  "<repo_id>:<model_name>"  HF (e.g. ooshyun/sound_event_detection:finetuned_ast)\n'
+             '  path/to/foo.ckpt          Lightning checkpoint\n'
+             '  path/to/foo.pt            raw or wrapped state_dict',
+    )
+    parser.add_argument(
+        "--resume_from", type=str, default=None,
+        help="Resume full training (model + optimizer + scheduler + epoch).",
+    )
+    args = parser.parse_args(argv)
+    if args.init_from and args.resume_from:
+        parser.error("--init_from and --resume_from are mutually exclusive")
+    return args
+
+
+def _load_initial_model(init_from: str, config: dict) -> ASTModel:
+    """Resolve ``--init_from`` spec into a SED model with weights loaded."""
+    p = Path(init_from)
+    if not p.exists() and ":" in init_from:
+        repo_id, model_name = init_from.rsplit(":", 1)
+        from src.sed.model import load_pretrained
+        logger.warning(
+            "Loading HF pretrained '%s:%s' — yaml 'model' section is ignored.",
+            repo_id, model_name,
+        )
+        return load_pretrained(repo_id=repo_id, model_name=model_name)
+
+    if not p.exists():
+        raise FileNotFoundError(f"--init_from path not found: {init_from}")
+
+    model = _build_ast_model(config)
+    ckpt = torch.load(str(p), map_location="cpu", weights_only=False)
+    sd = normalize_state_dict(ckpt)
+    model.load_state_dict(sd, strict=True)
+    logger.info("Loaded weights from %s (%d tensors)", init_from, len(sd))
+    return model
+
+
+def _build_ast_model(config: dict) -> ASTModel:
+    """Construct :class:`ASTModel` from yaml config."""
+    model_cfg = config["model"]
+    return ASTModel(
+        model_name=model_cfg.get("name", "MIT/ast-finetuned-audioset-10-10-0.4593"),
+        num_classes=model_cfg.get("num_classes", 20),
+        freeze_encoder=model_cfg.get("freeze_encoder", True),
+        sample_rate=model_cfg.get("sample_rate", 16000),
+    )
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -209,13 +257,10 @@ def main(argv: list[str] | None = None) -> None:
     )
 
     # Model
-    model_cfg = config["model"]
-    model = ASTModel(
-        model_name=model_cfg.get("name", "MIT/ast-finetuned-audioset-10-10-0.4593"),
-        num_classes=model_cfg.get("num_classes", 20),
-        freeze_encoder=model_cfg.get("freeze_encoder", True),
-        sample_rate=model_cfg.get("sample_rate", 16000),
-    )
+    if args.init_from:
+        model = _load_initial_model(args.init_from, config)
+    else:
+        model = _build_ast_model(config)
     logger.info(
         "Model: %d trainable / %d total parameters",
         model.get_trainable_parameters(),
@@ -245,6 +290,7 @@ def main(argv: list[str] | None = None) -> None:
         scheduler=scheduler,
         config=config,
         metrics_fn=metrics_fn,
+        resume_from=args.resume_from,
     )
 
     logger.info("Training complete. Result: %s", result)

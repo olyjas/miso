@@ -101,6 +101,7 @@ class LightningTrainerBackend(TrainerBackend):
         scheduler: optim.lr_scheduler._LRScheduler,
         config: dict[str, Any],
         metrics_fn: Callable | None = None,
+        resume_from: str | None = None,
     ) -> dict[str, Any]:
         tc = config.get("training", config)
         max_epochs: int = tc.get("max_epochs", config.get("max_epochs", 100))
@@ -155,7 +156,12 @@ class LightningTrainerBackend(TrainerBackend):
             metrics_fn=metrics_fn,
         )
 
-        trainer.fit(lit_model, train_dataloaders=train_loader, val_dataloaders=val_loader)
+        trainer.fit(
+            lit_model,
+            train_dataloaders=train_loader,
+            val_dataloaders=val_loader,
+            ckpt_path=resume_from,
+        )
 
         best_path = checkpoint_cb.best_model_path
         best_score = checkpoint_cb.best_model_score

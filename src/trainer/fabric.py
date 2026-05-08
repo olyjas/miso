@@ -146,6 +146,7 @@ class FabricTrainerBackend(TrainerBackend):
         scheduler: optim.lr_scheduler._LRScheduler,
         config: dict[str, Any],
         metrics_fn: Callable | None = None,
+        resume_from: str | None = None,
     ) -> dict[str, Any]:
         max_epochs: int = config.get("max_epochs", 100)
         precision: str = config.get("precision", "32-true")
@@ -178,11 +179,25 @@ class FabricTrainerBackend(TrainerBackend):
         best_epoch: int = -1
         best_path: str = ""
         patience_counter: int = 0
+        start_epoch: int = 0
 
         import os
         os.makedirs(save_dir, exist_ok=True)
 
-        for epoch in range(max_epochs):
+        # -- Resume from checkpoint ---------------------------------------
+        if resume_from is not None:
+            ckpt = torch.load(resume_from, map_location="cpu", weights_only=False)
+            raw_model = model.module if hasattr(model, "module") else model
+            raw_model.load_state_dict(ckpt["model_state_dict"])
+            if "optimizer_state_dict" in ckpt:
+                optimizer.load_state_dict(ckpt["optimizer_state_dict"])
+            start_epoch = int(ckpt.get("epoch", -1)) + 1
+            if fabric.global_rank == 0:
+                logger.info(
+                    "Resumed from %s (next epoch = %d)", resume_from, start_epoch
+                )
+
+        for epoch in range(start_epoch, max_epochs):
             if fabric.global_rank == 0:
                 logger.info(f"Epoch {epoch + 1}/{max_epochs}")
 

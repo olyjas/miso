@@ -19,7 +19,7 @@ from torch.utils.data import DataLoader
 from src.datasets.soundscape_dataset import SoundscapeDataset
 from src.tse.loss import MultiResoFuseLoss
 from src.tse.net import Net, _import_attr
-from src.trainer import create_trainer
+from src.trainer import create_trainer, normalize_state_dict
 
 logger = logging.getLogger(__name__)
 
@@ -148,11 +148,54 @@ def _build_metrics_fn():
 # ---------------------------------------------------------------------------
 
 
+def _load_initial_model(init_from: str, cfg: dict) -> Net:
+    """Resolve ``--init_from`` spec into a model with weights loaded.
+
+    Three formats supported:
+      - ``"<repo_id>:<model_name>"`` → HF download via ``load_pretrained``
+        (yaml ``model:`` section is ignored; HF config wins).
+      - local path to Lightning ``.ckpt`` (``state_dict`` + ``model.`` prefix).
+      - local path to raw ``.pt`` (bare state_dict or ``{"model_state_dict": ...}``).
+    """
+    p = Path(init_from)
+    if not p.exists() and ":" in init_from:
+        repo_id, model_name = init_from.rsplit(":", 1)
+        from src.tse.model import load_pretrained
+        logger.warning(
+            "Loading HF pretrained '%s:%s' — yaml 'model' section is ignored.",
+            repo_id, model_name,
+        )
+        return load_pretrained(repo_id, model_name)
+
+    if not p.exists():
+        raise FileNotFoundError(f"--init_from path not found: {init_from}")
+
+    model = _build_model(cfg)
+    ckpt = torch.load(str(p), map_location="cpu", weights_only=False)
+    sd = normalize_state_dict(ckpt)
+    model.load_state_dict(sd, strict=True)
+    logger.info("Loaded weights from %s (%d tensors)", init_from, len(sd))
+    return model
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Train TSE model")
     parser.add_argument("--config", type=str, required=True, help="YAML config path")
     parser.add_argument("--data_dir", type=str, default=None, help="Override data root")
+    parser.add_argument(
+        "--init_from", type=str, default=None,
+        help='Initialize weights only (fresh optimizer/scheduler). Formats:\n'
+             '  "<repo_id>:<model_name>"  HF (e.g. ooshyun/...:orange_pi_film_all)\n'
+             '  path/to/foo.ckpt          Lightning checkpoint\n'
+             '  path/to/foo.pt            raw or wrapped state_dict',
+    )
+    parser.add_argument(
+        "--resume_from", type=str, default=None,
+        help="Resume full training (model + optimizer + scheduler + epoch).",
+    )
     args = parser.parse_args(argv)
+    if args.init_from and args.resume_from:
+        parser.error("--init_from and --resume_from are mutually exclusive")
 
     logging.basicConfig(
         level=logging.INFO,
@@ -182,7 +225,10 @@ def main(argv: list[str] | None = None) -> None:
     )
 
     # Model
-    model = _build_model(cfg)
+    if args.init_from:
+        model = _load_initial_model(args.init_from, cfg)
+    else:
+        model = _build_model(cfg)
     logger.info(
         "Model parameters: %.2fM",
         sum(p.numel() for p in model.parameters()) / 1e6,
@@ -207,6 +253,7 @@ def main(argv: list[str] | None = None) -> None:
     trainer = create_trainer(tc.get("backend", "lightning"))
     trainer.fit(
         model, train_loader, val_loader, loss_fn, optimizer, scheduler, cfg, metrics_fn,
+        resume_from=args.resume_from,
     )
 
 

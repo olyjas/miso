@@ -26,8 +26,15 @@ class TrainerBackend(ABC):
         scheduler: optim.lr_scheduler._LRScheduler,
         config: dict[str, Any],
         metrics_fn: Callable | None = None,
+        resume_from: str | None = None,
     ) -> dict[str, Any]:
         """Train the model.
+
+        Args:
+            resume_from: Optional path to a checkpoint to resume full
+                training state (model + optimizer + scheduler + epoch).
+                Lightning forwards to ``pl.Trainer.fit(ckpt_path=...)``;
+                Fabric restores manually and resumes from saved epoch.
 
         Returns:
             A dict with at least ``best_epoch``, ``best_metric``, and
