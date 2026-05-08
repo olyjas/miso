@@ -110,15 +110,39 @@ def _build_scheduler(
     )
 
 
-def _sed_metrics_fn(predictions, targets, config):
-    """Wrap :class:`ClassificationMetrics` for the trainer callback."""
-    import numpy as np
+def _build_loss_fn(config: dict, dataset, device):
+    """Trainer-facing adapter: (outputs, targets, inputs) -> scalar loss.
 
+    SED ground truth is the multi-hot ``inputs["labels"]`` (NOT
+    ``targets["target"]`` which is the per-source waveform produced by
+    SoundscapeDataset for TSE-compatible output).
+    """
+    base = get_loss_function(config, dataset=dataset, device=device)
+
+    def adapter(outputs, targets, inputs):
+        logits = outputs["output"]      # (B, num_classes)
+        labels = inputs["labels"]       # (B, num_classes)  multi-hot float
+        return base(logits, labels)
+
+    return adapter
+
+
+def _build_metrics_fn(config: dict):
+    """Trainer-facing adapter: (outputs, targets, inputs) -> dict of scalars."""
     threshold = config.get("evaluation", {}).get("threshold", 0.5)
-    metrics = ClassificationMetrics()
-    preds_np = predictions.detach().cpu().numpy()
-    tgts_np = targets.detach().cpu().numpy()
-    return metrics.compute_all(preds_np, tgts_np, threshold=threshold)
+
+    def adapter(outputs, targets, inputs):
+        # Use softmax/sigmoid scores when available, otherwise raw logits.
+        scores = outputs.get("scores")
+        if scores is None:
+            scores = torch.sigmoid(outputs["output"])
+        labels = inputs["labels"]
+        cm = ClassificationMetrics()
+        preds_np = scores.detach().cpu().numpy()
+        tgts_np = labels.detach().cpu().numpy()
+        return cm.compute_all(preds_np, tgts_np, threshold=threshold)
+
+    return adapter
 
 
 # ---------------------------------------------------------------------------
@@ -202,16 +226,13 @@ def main(argv: list[str] | None = None) -> None:
     optimizer = _build_optimizer(model, config)
     scheduler = _build_scheduler(optimizer, config)
 
-    # Loss
-    loss_fn = get_loss_function(config, dataset=train_ds, device=device)
+    # Loss / metrics adapters (3-arg trainer interface)
+    loss_fn = _build_loss_fn(config, dataset=train_ds, device=device)
+    metrics_fn = _build_metrics_fn(config)
 
     # Trainer
     backend = config["training"].get("backend", "lightning")
     trainer = create_trainer(backend)
-
-    # Metrics callback
-    def metrics_fn(preds, tgts):
-        return _sed_metrics_fn(preds, tgts, config)
 
     # Train
     logger.info("Starting training...")

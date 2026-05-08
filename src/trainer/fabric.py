@@ -39,7 +39,7 @@ def _train_one_epoch(
 
         inputs, targets = batch
         outputs = model(inputs)
-        loss = loss_fn(outputs, targets)
+        loss = loss_fn(outputs, targets, inputs)
 
         fabric.backward(loss)
 
@@ -88,14 +88,14 @@ def _validate_one_epoch(
         for batch_idx, batch in enumerate(val_loader):
             inputs, targets = batch
             outputs = model(inputs)
-            loss = loss_fn(outputs, targets)
+            loss = loss_fn(outputs, targets, inputs)
 
             batch_size = targets.size(0) if hasattr(targets, "size") else 1
             total_loss += loss.item() * batch_size
             num_elements += batch_size
 
             if metrics_fn is not None:
-                batch_metrics = metrics_fn(outputs, targets)
+                batch_metrics = metrics_fn(outputs, targets, inputs)
                 for key, value in batch_metrics.items():
                     val = value.item() if isinstance(value, torch.Tensor) else float(value)
                     all_metrics[key] = all_metrics.get(key, 0.0) + val * batch_size

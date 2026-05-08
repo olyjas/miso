@@ -113,27 +113,34 @@ def _build_model(cfg: dict) -> Net:
     )
 
 
-def _build_loss(cfg: dict) -> MultiResoFuseLoss:
+def _build_loss_fn(cfg: dict):
+    """Trainer-facing adapter: (outputs, targets, inputs) -> scalar loss."""
     lc = cfg.get("loss", {})
-    return MultiResoFuseLoss(l1_ratio=lc.get("l1_ratio", 10))
+    base = MultiResoFuseLoss(l1_ratio=lc.get("l1_ratio", 10))
+
+    def adapter(outputs, targets, inputs):
+        return base(est=outputs["output"], gt=targets["target"]).mean()
+
+    return adapter
 
 
-def _metrics_fn(
-    est: torch.Tensor, gt: torch.Tensor, mix: torch.Tensor,
-) -> dict[str, float]:
-    """Lightweight training metrics (SI-SDRi and SNRi)."""
+def _build_metrics_fn():
+    """Trainer-facing adapter: (outputs, targets, inputs) -> dict of scalars."""
     from torchmetrics.functional import (
         scale_invariant_signal_distortion_ratio as si_sdr,
         signal_noise_ratio as snr_fn,
     )
 
-    # est/gt: (B, C, T), mix: (B, M, T) — mono-downmix mix to match
-    mix_mono = mix.mean(dim=1, keepdim=True).expand_as(gt)
+    def adapter(outputs, targets, inputs):
+        est = outputs["output"]          # (B, C, T)
+        gt = targets["target"]            # (B, C, T)
+        mix = inputs["mixture"]           # (B, M, T)
+        mix_mono = mix.mean(dim=1, keepdim=True).expand_as(gt)
+        si_sdri = (si_sdr(est, gt) - si_sdr(mix_mono, gt)).mean()
+        snri = (snr_fn(est, gt) - snr_fn(mix_mono, gt)).mean()
+        return {"si_sdri": si_sdri, "snri": snri}
 
-    si_sdri = (si_sdr(est, gt) - si_sdr(mix_mono, gt)).mean()
-    snri = (snr_fn(est, gt) - snr_fn(mix_mono, gt)).mean()
-
-    return {"si_sdri": si_sdri, "snri": snri}
+    return adapter
 
 
 # ---------------------------------------------------------------------------
@@ -192,13 +199,14 @@ def main(argv: list[str] | None = None) -> None:
         **tc.get("scheduler_params", {}),
     )
 
-    # Loss
-    loss_fn = _build_loss(cfg)
+    # Loss / metrics adapters (3-arg trainer interface)
+    loss_fn = _build_loss_fn(cfg)
+    metrics_fn = _build_metrics_fn()
 
     # Trainer
     trainer = create_trainer(tc.get("backend", "lightning"))
     trainer.fit(
-        model, train_loader, val_loader, loss_fn, optimizer, scheduler, cfg, _metrics_fn,
+        model, train_loader, val_loader, loss_fn, optimizer, scheduler, cfg, metrics_fn,
     )
 
 

@@ -50,9 +50,7 @@ class _LitWrapper(pl.LightningModule):
     def training_step(self, batch: Any, batch_idx: int) -> torch.Tensor:
         inputs, targets = batch
         outputs = self.model(inputs)
-        est = outputs["output"]
-        gt = targets["target"]
-        loss = self.loss_fn(est=est, gt=gt).mean()
+        loss = self.loss_fn(outputs, targets, inputs)
         self.log("train/loss", loss, prog_bar=True, sync_dist=True)
         return loss
 
@@ -62,14 +60,11 @@ class _LitWrapper(pl.LightningModule):
     def validation_step(self, batch: Any, batch_idx: int) -> None:
         inputs, targets = batch
         outputs = self.model(inputs)
-        est = outputs["output"]
-        gt = targets["target"]
-        loss = self.loss_fn(est=est, gt=gt).mean()
+        loss = self.loss_fn(outputs, targets, inputs)
         self.log("val/loss", loss, prog_bar=True, sync_dist=True)
 
         if self.metrics_fn is not None:
-            mix = inputs["mixture"]
-            metrics = self.metrics_fn(est, gt, mix)
+            metrics = self.metrics_fn(outputs, targets, inputs)
             for key, value in metrics.items():
                 self.log(f"val/{key}", value, prog_bar=True, sync_dist=True)
 
