@@ -32,12 +32,19 @@ logger = logging.getLogger(__name__)
 
 
 def _build_dataset(config: dict, split: str) -> SoundscapeDataset:
-    """Instantiate a :class:`SoundscapeDataset` in SED mode."""
+    """Instantiate a :class:`SoundscapeDataset` in SED mode.
+
+    yaml ``fg_dir`` / ``noise_dir`` are expected to be the *base* dirs
+    without split suffix; this function appends ``/{split}``. ``hrtf_list``
+    should point at the train list; val/test lists are derived by
+    substituting ``train_hrtf`` -> ``{split}_hrtf``.
+    """
+    import os
     data_cfg = config["data"]
     return SoundscapeDataset(
-        fg_dir=data_cfg["fg_dir"],
-        noise_dir=data_cfg["noise_dir"],
-        hrtf_list=data_cfg["hrtf_list"],
+        fg_dir=os.path.join(data_cfg["fg_dir"], split),
+        noise_dir=os.path.join(data_cfg["noise_dir"], split),
+        hrtf_list=data_cfg["hrtf_list"].replace("train_hrtf", f"{split}_hrtf"),
         split=split,
         sr=data_cfg.get("sr", 16000),
         duration=data_cfg.get("duration", 5),
@@ -200,14 +207,15 @@ def _load_initial_model(init_from: str, config: dict) -> ASTModel:
 
 
 def _build_ast_model(config: dict) -> ASTModel:
-    """Construct :class:`ASTModel` from yaml config."""
+    """Construct :class:`ASTModel` (`ASTHuggingFace`) from yaml config."""
     model_cfg = config["model"]
-    return ASTModel(
+    model = ASTModel(
         model_name=model_cfg.get("name", "MIT/ast-finetuned-audioset-10-10-0.4593"),
-        num_classes=model_cfg.get("num_classes", 20),
-        freeze_encoder=model_cfg.get("freeze_encoder", True),
-        sample_rate=model_cfg.get("sample_rate", 16000),
+        num_labels=model_cfg.get("num_classes", 20),
     )
+    if model_cfg.get("freeze_encoder", True):
+        model.freeze_model()
+    return model
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -222,12 +230,13 @@ def main(argv: list[str] | None = None) -> None:
     with open(args.config, "r") as f:
         config = yaml.safe_load(f)
 
-    # Override data dir if provided
+    # Override data dir if provided — re-root any relative path under it
     if args.data_dir:
-        config["data"]["fg_dir"] = str(Path(args.data_dir) / "scaper_fmt")
-        config["data"]["noise_dir"] = str(
-            Path(args.data_dir) / "noise_scaper_fmt"
-        )
+        root = Path(args.data_dir)
+        for key in ("fg_dir", "noise_dir", "hrtf_list"):
+            val = config["data"].get(key)
+            if val and not Path(val).is_absolute():
+                config["data"][key] = str(root / val)
 
     # Device
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -261,11 +270,9 @@ def main(argv: list[str] | None = None) -> None:
         model = _load_initial_model(args.init_from, config)
     else:
         model = _build_ast_model(config)
-    logger.info(
-        "Model: %d trainable / %d total parameters",
-        model.get_trainable_parameters(),
-        model.get_total_parameters(),
-    )
+    n_total = sum(p.numel() for p in model.parameters())
+    n_train = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    logger.info("Model: %d trainable / %d total parameters", n_train, n_total)
 
     # Optimizer & scheduler
     optimizer = _build_optimizer(model, config)

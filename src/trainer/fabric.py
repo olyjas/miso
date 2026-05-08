@@ -148,9 +148,10 @@ class FabricTrainerBackend(TrainerBackend):
         metrics_fn: Callable | None = None,
         resume_from: str | None = None,
     ) -> dict[str, Any]:
-        max_epochs: int = config.get("max_epochs", 100)
-        precision: str = config.get("precision", "32-true")
-        grad_clip: float | None = config.get("grad_clip", None)
+        tc = config.get("training", config)
+        max_epochs: int = tc.get("max_epochs", config.get("max_epochs", 100))
+        precision: str = tc.get("precision", config.get("precision", "32-true"))
+        grad_clip: float | None = tc.get("grad_clip", config.get("grad_clip", None))
 
         # -- Checkpointing config -----------------------------------------
         ckpt_cfg = config.get("checkpointing", {})

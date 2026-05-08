@@ -423,10 +423,13 @@ class SoundscapeDataset(Dataset):
 
             # Build return dicts
             if self.task == "tse":
+                # Net.forward consumes inputs["embedding"]. With embedding_dim=0
+                # (the path all current configs use) FiLM expects a multi-hot
+                # float vector of size spk_dim, not an int index.
                 inputs = {
                     "mixture": mixture,
                     "label_vector": label_vector,
-                    "embedding": int(torch.argmax(label_vector).item()),
+                    "embedding": label_vector,
                 }
             else:
                 inputs = {
@@ -434,9 +437,13 @@ class SoundscapeDataset(Dataset):
                     "labels": label_vector,  # multi-hot
                 }
 
+            # Pad fg_labels to fixed length so default DataLoader collate works
+            num_fg_max = self.num_fg_range[1]
+            fg_labels_padded = fg_labels + ["None"] * (num_fg_max - len(fg_labels))
+
             targets = {
                 "target": target,
-                "fg_labels": fg_labels,
+                "fg_labels": fg_labels_padded,
                 "num_fg_labels": n_fg,
             }
 

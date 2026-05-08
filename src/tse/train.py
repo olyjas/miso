@@ -229,6 +229,8 @@ def main(argv: list[str] | None = None) -> None:
         model = _load_initial_model(args.init_from, cfg)
     else:
         model = _build_model(cfg)
+    # load_pretrained() ends in eval(); switch back to train for fine-tuning
+    model.train()
     logger.info(
         "Model parameters: %.2fM",
         sum(p.numel() for p in model.parameters()) / 1e6,
