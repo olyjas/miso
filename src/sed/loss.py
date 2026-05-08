@@ -1,6 +1,6 @@
-from __future__ import annotations
-
 """Loss functions for multi-label sound event detection."""
+
+from __future__ import annotations
 
 import logging
 from typing import Optional
@@ -26,9 +26,7 @@ class MultiLabelBCELoss(nn.Module):
     ) -> None:
         super().__init__()
         self.pos_weight = pos_weight
-        self.loss_fn = nn.BCEWithLogitsLoss(
-            pos_weight=pos_weight, reduction=reduction
-        )
+        self.loss_fn = nn.BCEWithLogitsLoss(pos_weight=pos_weight, reduction=reduction)
 
     def forward(self, logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
         """Compute BCE loss.
@@ -170,8 +168,11 @@ def get_loss_function(
             pos_weight = pos_weight.to(device)
 
         loss_fn = MultiLabelBCELoss(pos_weight=pos_weight)
-        logger.info("Created %s loss (pos_weight=%s)", loss_type,
-                     "auto" if pos_weight is not None else "none")
+        logger.info(
+            "Created %s loss (pos_weight=%s)",
+            loss_type,
+            "auto" if pos_weight is not None else "none",
+        )
 
     elif loss_type == "FocalLoss":
         alpha = loss_cfg.get("alpha", 0.25)

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import glob
 import logging
 import os
 import random
@@ -114,7 +113,9 @@ class DISCOSource(BaseSource):
 
             # 67:33 train:test split
             train_files, test_files = train_test_split(
-                file_list, test_size=0.33, random_state=42,
+                file_list,
+                test_size=0.33,
+                random_state=42,
             )
 
             # 90:10 train:val split

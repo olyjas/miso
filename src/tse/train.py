@@ -1,11 +1,11 @@
-from __future__ import annotations
-
 """TSE training entry point.
 
 Usage::
 
     python -m src.tse.train --config configs/tse/orange_pi.yaml [--data_dir /path/to/BinauralCuratedDataset]
 """
+
+from __future__ import annotations
 
 import argparse
 import logging
@@ -132,9 +132,9 @@ def _build_metrics_fn():
     )
 
     def adapter(outputs, targets, inputs):
-        est = outputs["output"]          # (B, C, T)
-        gt = targets["target"]            # (B, C, T)
-        mix = inputs["mixture"]           # (B, M, T)
+        est = outputs["output"]  # (B, C, T)
+        gt = targets["target"]  # (B, C, T)
+        mix = inputs["mixture"]  # (B, M, T)
         mix_mono = mix.mean(dim=1, keepdim=True).expand_as(gt)
         si_sdri = (si_sdr(est, gt) - si_sdr(mix_mono, gt)).mean()
         snri = (snr_fn(est, gt) - snr_fn(mix_mono, gt)).mean()
@@ -161,9 +161,11 @@ def _load_initial_model(init_from: str, cfg: dict) -> Net:
     if not p.exists() and ":" in init_from:
         repo_id, model_name = init_from.rsplit(":", 1)
         from src.tse.model import load_pretrained
+
         logger.warning(
             "Loading HF pretrained '%s:%s' — yaml 'model' section is ignored.",
-            repo_id, model_name,
+            repo_id,
+            model_name,
         )
         return load_pretrained(repo_id, model_name)
 
@@ -183,14 +185,18 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--config", type=str, required=True, help="YAML config path")
     parser.add_argument("--data_dir", type=str, default=None, help="Override data root")
     parser.add_argument(
-        "--init_from", type=str, default=None,
-        help='Initialize weights only (fresh optimizer/scheduler). Formats:\n'
-             '  "<repo_id>:<model_name>"  HF (e.g. ooshyun/...:orange_pi_film_all)\n'
-             '  path/to/foo.ckpt          Lightning checkpoint\n'
-             '  path/to/foo.pt            raw or wrapped state_dict',
+        "--init_from",
+        type=str,
+        default=None,
+        help="Initialize weights only (fresh optimizer/scheduler). Formats:\n"
+        '  "<repo_id>:<model_name>"  HF (e.g. ooshyun/...:orange_pi_film_all)\n'
+        "  path/to/foo.ckpt          Lightning checkpoint\n"
+        "  path/to/foo.pt            raw or wrapped state_dict",
     )
     parser.add_argument(
-        "--resume_from", type=str, default=None,
+        "--resume_from",
+        type=str,
+        default=None,
         help="Resume full training (model + optimizer + scheduler + epoch).",
     )
     args = parser.parse_args(argv)
@@ -254,7 +260,14 @@ def main(argv: list[str] | None = None) -> None:
     # Trainer
     trainer = create_trainer(tc.get("backend", "lightning"))
     trainer.fit(
-        model, train_loader, val_loader, loss_fn, optimizer, scheduler, cfg, metrics_fn,
+        model,
+        train_loader,
+        val_loader,
+        loss_fn,
+        optimizer,
+        scheduler,
+        cfg,
+        metrics_fn,
         resume_from=args.resume_from,
     )
 

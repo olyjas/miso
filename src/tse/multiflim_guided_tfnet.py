@@ -12,6 +12,7 @@ def _import_attr(name):
     """Dynamically import a class/function from a dotted path string."""
     module_path, _, attr_name = name.rpartition(".")
     import importlib
+
     module = importlib.import_module(module_path)
     return getattr(module, attr_name)
 

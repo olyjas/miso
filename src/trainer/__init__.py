@@ -51,7 +51,7 @@ def normalize_state_dict(ckpt: Any) -> dict:
 
     if any(isinstance(k, str) and k.startswith("model.") for k in sd):
         sd = {
-            (k[len("model."):] if k.startswith("model.") else k): v
+            (k[len("model.") :] if k.startswith("model.") else k): v
             for k, v in sd.items()
         }
     return sd

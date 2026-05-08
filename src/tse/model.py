@@ -1,10 +1,10 @@
-from __future__ import annotations
-
 """TSE model wrapper.
 
 Provides a ``load_pretrained()`` helper for checkpoint loading from
 HuggingFace Hub.
 """
+
+from __future__ import annotations
 
 import logging
 from typing import Any
@@ -13,11 +13,6 @@ import torch
 
 # Re-export model classes
 from src.tse.net import Net
-from src.tse.multiflim_guided_tfnet import MultiFiLMGuidedTFNet
-from src.tse.gridnet_block import GridNetBlock
-from src.tse.film import FiLM
-from src.tse.dsp import get_perfect_synthesis_window, mod_pad
-from src.tse.loss import MultiResoFuseLoss
 
 logger = logging.getLogger(__name__)
 
@@ -122,21 +117,29 @@ def load_pretrained(
         "src.models.blocks.gridnet_blockTFGridNet.GridNetBlock": "src.tse.gridnet_block.GridNetBlock",
         "src.models.blocks.mlpnet_block.MLPBlock": "src.tse.mlpnet_block.MLPBlock",
     }
-    raw_model_name = mp.get("model_name", "src.tse.multiflim_guided_tfnet.MultiFiLMGuidedTFNet")
+    raw_model_name = mp.get(
+        "model_name", "src.tse.multiflim_guided_tfnet.MultiFiLMGuidedTFNet"
+    )
     raw_block_name = mp.get("block_model_name", "src.tse.gridnet_block.GridNetBlock")
     model_name_dotted = _IMPORT_REMAP.get(raw_model_name, raw_model_name)
     block_model_name = _IMPORT_REMAP.get(raw_block_name, raw_block_name)
     block_model_params = mp.get("block_model_params", {})
-    embedding_params = mp.get("embedding_params", {
-        "embedding_dim": 0,
-        "embedding_type": "",
-        "embedding_activation": "",
-        "embedding_init": "",
-    })
-    film_params = mp.get("film_params", {
-        "film_positions": [],
-        "film_preset": "all_except_first",
-    })
+    embedding_params = mp.get(
+        "embedding_params",
+        {
+            "embedding_dim": 0,
+            "embedding_type": "",
+            "embedding_activation": "",
+            "embedding_init": "",
+        },
+    )
+    film_params = mp.get(
+        "film_params",
+        {
+            "film_positions": [],
+            "film_preset": "all_except_first",
+        },
+    )
 
     model = Net(
         model_name=model_name_dotted,
@@ -191,15 +194,20 @@ def _load_waveformer(mp: dict, state_dict: dict) -> Any:
         lookahead = True  # default
         kernel_size = 3 * L if lookahead else L
         model.in_conv = torch.nn.Sequential(
-            torch.nn.Conv1d(in_ch, model_dim, kernel_size, stride=L, padding=0, bias=False),
+            torch.nn.Conv1d(
+                in_ch, model_dim, kernel_size, stride=L, padding=0, bias=False
+            ),
             torch.nn.ReLU(),
         )
     if out_ch != 1:
         model.out_conv = torch.nn.Sequential(
             torch.nn.ConvTranspose1d(
-                model_dim, out_ch,
+                model_dim,
+                out_ch,
                 kernel_size=(out_buf_len + 1) * L,
-                stride=L, padding=out_buf_len * L, bias=False,
+                stride=L,
+                padding=out_buf_len * L,
+                bias=False,
             ),
             torch.nn.Tanh(),
         )
@@ -216,7 +224,9 @@ def _load_waveformer(mp: dict, state_dict: dict) -> Any:
     # Wrap in adapter that matches eval.py's dict input/output interface
     # nO=1: Waveformer extracts one source at a time (stereo→mono inside forward).
     # eval.py uses nO==1 to trigger per-label inference for multi-source mixtures.
-    wrapper = _WaveformerWrapper(model, nI=in_ch, nO=1, label_len=wp.get("label_len", 20))
+    wrapper = _WaveformerWrapper(
+        model, nI=in_ch, nO=1, label_len=wp.get("label_len", 20)
+    )
     return wrapper
 
 

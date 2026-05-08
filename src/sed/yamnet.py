@@ -12,6 +12,7 @@ Usage:
     # outputs["scores"]: (batch, num_classes) softmax probabilities
     # outputs["output"]: same as scores
 """
+
 from __future__ import annotations
 
 import json
@@ -48,8 +49,7 @@ class YAMNetModel(nn.Module):
             import tensorflow as tf
         except ImportError:
             raise ImportError(
-                "YAMNet requires tensorflow. "
-                "Install with: pip install tensorflow"
+                "YAMNet requires tensorflow. Install with: pip install tensorflow"
             )
 
         # Suppress TF warnings and force CPU (avoid GPU JIT issues)
@@ -69,8 +69,8 @@ class YAMNetModel(nn.Module):
         if ontology_path.exists():
             with open(ontology_path) as f:
                 ontology = json.load(f)
-            self.class_names = [item["name"] for item in ontology][:self.NUM_CLASSES]
-            self.ids = [item["id"] for item in ontology][:self.NUM_CLASSES]
+            self.class_names = [item["name"] for item in ontology][: self.NUM_CLASSES]
+            self.ids = [item["id"] for item in ontology][: self.NUM_CLASSES]
         else:
             self.class_names = [f"class_{i}" for i in range(self.NUM_CLASSES)]
             self.ids = [f"/m/{i:04x}" for i in range(self.NUM_CLASSES)]
@@ -84,7 +84,6 @@ class YAMNetModel(nn.Module):
     def _download_yamnet(tf):
         """Download YAMNet SavedModel from TF Hub (without tensorflow_hub)."""
         import tarfile
-        import tempfile
         import urllib.request
         from pathlib import Path
 

@@ -81,7 +81,8 @@ class TAUSource(BaseSource):
 
     @staticmethod
     def _curate_samples(
-        samples: list[str], is_test: bool = False,
+        samples: list[str],
+        is_test: bool = False,
     ) -> pd.DataFrame:
         processed = pd.DataFrame(
             {"fname": [os.path.basename(x).split(".")[0] for x in samples]}
@@ -91,9 +92,7 @@ class TAUSource(BaseSource):
                 lambda x: x.split("-")[0] + "-" + x.split("-")[1]
             )
         else:
-            processed["label"] = processed["fname"].apply(
-                lambda x: x.split(".")[0]
-            )
+            processed["label"] = processed["fname"].apply(lambda x: x.split(".")[0])
         processed["id"] = processed["fname"].apply(
             lambda x: "-".join(x.split("-")[2:]).split(".")[0]
         )
@@ -137,8 +136,16 @@ class TAUSource(BaseSource):
             train_frames.append(tr)
             val_frames.append(va)
 
-        train_samples = pd.concat(train_frames) if train_frames else pd.DataFrame(columns=["fname", "label", "id"])
-        val_samples = pd.concat(val_frames) if val_frames else pd.DataFrame(columns=["fname", "label", "id"])
+        train_samples = (
+            pd.concat(train_frames)
+            if train_frames
+            else pd.DataFrame(columns=["fname", "label", "id"])
+        )
+        val_samples = (
+            pd.concat(val_frames)
+            if val_frames
+            else pd.DataFrame(columns=["fname", "label", "id"])
+        )
         test_samples = self._curate_samples(eval_samples, is_test=True)
 
         # Add relative paths to audio
@@ -162,8 +169,7 @@ class TAUSource(BaseSource):
 
         # Keep common labels between train and val
         common_labels = list(
-            set(train_samples["label"].unique())
-            & set(val_samples["label"].unique())
+            set(train_samples["label"].unique()) & set(val_samples["label"].unique())
         )
         train_samples = train_samples[train_samples["label"].isin(common_labels)]
         val_samples = val_samples[val_samples["label"].isin(common_labels)]
@@ -192,21 +198,13 @@ class TAUSource(BaseSource):
                 desc=f"TAU {split_name}",
             ):
                 label_str = (
-                    row["label"]
-                    if isinstance(row["label"], str)
-                    else str(row["label"])
+                    row["label"] if isinstance(row["label"], str) else str(row["label"])
                 )
                 dest_dir = symlink_dir / split_name / label_str
                 dest_dir.mkdir(parents=True, exist_ok=True)
 
-                src = os.path.join(
-                    "..", "..", "..", dataset_name, row["fname"]
-                )
-                fname = (
-                    dataset_name.lower()
-                    + "_"
-                    + os.path.basename(row["fname"])
-                )
+                src = os.path.join("..", "..", "..", dataset_name, row["fname"])
+                fname = dataset_name.lower() + "_" + os.path.basename(row["fname"])
                 dest = dest_dir / fname
 
                 if dest.exists():

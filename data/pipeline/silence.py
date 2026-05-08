@@ -3,6 +3,7 @@
 Identifies the leading/trailing silence boundaries and the first
 internal silence region using a sliding-window power threshold.
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -24,7 +25,7 @@ def trim_silence(path: str) -> tuple[int, int, int]:
     if len(trimmed) < window_size:
         return int(start), int(end), int(end)
 
-    avg_power = uniform_filter1d(trimmed ** 2, size=window_size)
+    avg_power = uniform_filter1d(trimmed**2, size=window_size)
     threshold = 0.1 * avg_power.max() if avg_power.max() > 0 else 0
     mask = avg_power < threshold
     first_silence = int(np.argmax(mask)) + start if mask.any() else int(end)

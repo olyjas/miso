@@ -27,6 +27,7 @@ Usage:
         --output_dir /path/to/BinauralCuratedDataset_mini \
         --samples_per_class 5
 """
+
 from __future__ import annotations
 
 import argparse
@@ -39,12 +40,12 @@ def get_size_str(size_bytes: int) -> str:
     """Format byte count as human-readable string."""
     if size_bytes < 1024:
         return f"{size_bytes} B"
-    elif size_bytes < 1024 ** 2:
+    elif size_bytes < 1024**2:
         return f"{size_bytes / 1024:.1f} KB"
-    elif size_bytes < 1024 ** 3:
-        return f"{size_bytes / 1024 ** 2:.1f} MB"
+    elif size_bytes < 1024**3:
+        return f"{size_bytes / 1024**2:.1f} MB"
     else:
-        return f"{size_bytes / 1024 ** 3:.2f} GB"
+        return f"{size_bytes / 1024**3:.2f} GB"
 
 
 def copy_file(src: str, dst: str, *, follow_symlinks: bool = True) -> int:
@@ -105,7 +106,8 @@ def copy_scaper_dir(
         if not os.path.isdir(split_dir):
             continue
         classes = sorted(
-            d for d in os.listdir(split_dir)
+            d
+            for d in os.listdir(split_dir)
             if os.path.isdir(os.path.join(split_dir, d))
         )
         if max_dirs_per_split > 0 and len(classes) > max_dirs_per_split:
@@ -114,7 +116,8 @@ def copy_scaper_dir(
             cls_dir = os.path.join(split_dir, cls)
             # Gather audio files (WAV, FLAC, etc.), sorted for reproducibility
             files = sorted(
-                f for f in os.listdir(cls_dir)
+                f
+                for f in os.listdir(cls_dir)
                 if os.path.isfile(os.path.join(cls_dir, f))
             )
             selected = files[:samples_per_class]
@@ -211,15 +214,16 @@ def create_mini_dataset(
     grand_bytes = 0
 
     # 1. Foreground audio (20 classes — keep all classes)
-    f, b = copy_scaper_dir(
-        input_dir, output_dir, "scaper_fmt", samples_per_class
-    )
+    f, b = copy_scaper_dir(input_dir, output_dir, "scaper_fmt", samples_per_class)
     grand_files += f
     grand_bytes += b
 
     # 2. Background audio (141 classes — cap to 20 to control size)
     f, b = copy_scaper_dir(
-        input_dir, output_dir, "bg_scaper_fmt", samples_per_class,
+        input_dir,
+        output_dir,
+        "bg_scaper_fmt",
+        samples_per_class,
         max_dirs_per_split=20,
     )
     grand_files += f
@@ -229,7 +233,10 @@ def create_mini_dataset(
     #    train/val have ~100 scene dirs, test has 7200+ numbered dirs.
     #    Cap to 10 dirs per split to keep the mini dataset small.
     f, b = copy_scaper_dir(
-        input_dir, output_dir, "noise_scaper_fmt", samples_per_class,
+        input_dir,
+        output_dir,
+        "noise_scaper_fmt",
+        samples_per_class,
         follow_symlinks=True,
         max_dirs_per_split=10,
     )

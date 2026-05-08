@@ -1,8 +1,7 @@
-import os, sys
+import os
 import argparse
 
 import pandas as pd
-import numpy as np
 from ontology import Ontology
 
 
@@ -93,7 +92,6 @@ class ESC50LabelCollector:
 
         return dataset
 
-
     def count_samples(self, dataset: pd.DataFrame):
         dataset["original_label"] = dataset["category"]
         dataset["label"] = dataset["original_label"].apply(lambda x: dictionary[x])
@@ -121,7 +119,6 @@ class ESC50LabelCollector:
         train.to_csv(os.path.join(self.dataset_dir, "train.csv"), index=False)
         val.to_csv(os.path.join(self.dataset_dir, "val.csv"), index=False)
         test.to_csv(os.path.join(self.dataset_dir, "test.csv"), index=False)
-
 
     def analyze_dataset(self):
         columns = ["original_label", "fname", "label", "id"]
@@ -155,33 +152,39 @@ class ESC50LabelCollector:
         test.to_json(os.path.join(self.dataset_dir, "test.json"), orient="records")
 
         # save to csv - create label count summary
-        all_labels = set(train_counts.index) | set(val_counts.index) | set(test_counts.index)
+        all_labels = (
+            set(train_counts.index) | set(val_counts.index) | set(test_counts.index)
+        )
         label_counts = []
-        
+
         for label in sorted(all_labels):
             train_count = train_counts.get(label, 0)
             val_count = val_counts.get(label, 0)
             test_count = test_counts.get(label, 0)
-            
+
             # Get the original label name from dictionary
             original_label = None
             for orig, mapped in dictionary.items():
                 if mapped == label:
                     original_label = orig
                     break
-            
-            label_counts.append({
-                'label': label,
-                'original_label': original_label if original_label else '',
-                'train_count': train_count,
-                'val_count': val_count,
-                'test_count': test_count,
-                'total_count': train_count + val_count + test_count
-            })
-        
+
+            label_counts.append(
+                {
+                    "label": label,
+                    "original_label": original_label if original_label else "",
+                    "train_count": train_count,
+                    "val_count": val_count,
+                    "test_count": test_count,
+                    "total_count": train_count + val_count + test_count,
+                }
+            )
+
         counts_df = pd.DataFrame(label_counts)
-        counts_df.to_csv(os.path.join(self.dataset_dir, "label_counts.csv"), index=False)
-        
+        counts_df.to_csv(
+            os.path.join(self.dataset_dir, "label_counts.csv"), index=False
+        )
+
         # Also save individual dataset CSVs
         train.to_csv(os.path.join(self.dataset_dir, "train_counts.csv"), index=False)
         val.to_csv(os.path.join(self.dataset_dir, "val_counts.csv"), index=False)
@@ -189,23 +192,37 @@ class ESC50LabelCollector:
 
         # copy csv to datasets/gen/counts/
         import shutil
+
         copy_path = "src/datasets/gen/counts/ESC-50"
         if not os.path.exists(copy_path):
             os.makedirs(copy_path, exist_ok=True)
-        shutil.copy(os.path.join(args.dataset_dir, "label_counts.csv"), os.path.join(copy_path, "label_counts.csv"))
-        shutil.copy(os.path.join(args.dataset_dir, "train_counts.csv"), os.path.join(copy_path, "train_counts.csv"))
-        shutil.copy(os.path.join(args.dataset_dir, "val_counts.csv"), os.path.join(copy_path, "val_counts.csv"))
-        shutil.copy(os.path.join(args.dataset_dir, "test_counts.csv"), os.path.join(copy_path, "test_counts.csv"))
-
+        shutil.copy(
+            os.path.join(args.dataset_dir, "label_counts.csv"),
+            os.path.join(copy_path, "label_counts.csv"),
+        )
+        shutil.copy(
+            os.path.join(args.dataset_dir, "train_counts.csv"),
+            os.path.join(copy_path, "train_counts.csv"),
+        )
+        shutil.copy(
+            os.path.join(args.dataset_dir, "val_counts.csv"),
+            os.path.join(copy_path, "val_counts.csv"),
+        )
+        shutil.copy(
+            os.path.join(args.dataset_dir, "test_counts.csv"),
+            os.path.join(copy_path, "test_counts.csv"),
+        )
 
 
 def main(args):
     label_collector = ESC50LabelCollector(args.dataset_dir, args.ontology_path)
     label_collector.write_samples()
 
+
 def analyze_dataset(args):
     label_collector = ESC50LabelCollector(args.dataset_dir, args.ontology_path)
     label_collector.analyze_dataset()
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -214,7 +231,9 @@ if __name__ == "__main__":
         "--dataset_dir", type=str, default="data/BinauralCuratedDataset/ESC-50"
     )
     parser.add_argument(
-        "--analyze_dataset", action="store_true", help="Analyze dataset.",
+        "--analyze_dataset",
+        action="store_true",
+        help="Analyze dataset.",
     )
     args = parser.parse_args()
 
@@ -222,4 +241,3 @@ if __name__ == "__main__":
         analyze_dataset(args)
     else:
         main(args)
-

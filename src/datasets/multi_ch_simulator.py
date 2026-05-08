@@ -1,16 +1,15 @@
-import os, glob
+import os
+import glob
 import re
-import json
 
 import numpy as np
 import pandas as pd
 import random
 import sofa
 from scipy.signal import convolve
-import soundfile as sf
-import librosa
 import torch
 import torchaudio
+
 try:
     import matplotlib.pyplot as plt
 except ImportError:
@@ -128,6 +127,7 @@ class RRBRIRSimulator(SOFASimulator):
     def __init__(self, sofa_text_file, fs) -> None:
         super().__init__(sofa_text_file, fs)
         self.face_to_face_idx = 18
+
 
 class ASHSimulator:
     def __init__(self, hrtf_list, fs, dset="train"):
@@ -355,6 +355,7 @@ class CATTRIRSimulator:
 
         return bi_srcs, bi_noise
 
+
 class MultiChSimulator:
     def __init__(
         self, hrtf_list, fs, cipic_simulator_type=CIPICSimulator, dset="train"
@@ -375,6 +376,7 @@ class MultiChSimulator:
             self.multi_ch_simulators, 1, counts=self.sampling_counts
         )[0]
         return multi_ch_simulator.simulate(srcs, noise, seed, face_to_face_idx)
+
 
 class MultiChSimulatorSemHL:
     def __init__(
@@ -405,6 +407,7 @@ class MultiChSimulatorSemHL:
             return srcs, noise
         else:
             return multi_ch_simulator.simulate(srcs, noise, seed, face_to_face_idx)
+
 
 class MultiChSimulator2:
     def __init__(

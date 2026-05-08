@@ -14,9 +14,9 @@ def run_download(
     raw_dir.mkdir(parents=True, exist_ok=True)
 
     for key, source in sources.items():
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"  [{source.key}] {source.name}")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
 
         if key in ZENODO_DATASETS:
             if manual_dir and (manual_dir / source.name).exists():

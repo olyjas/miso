@@ -84,13 +84,15 @@ class ESC50Source(BaseSource):
             if not audio_path.exists():
                 audio = row["audio"]
                 sf.write(str(audio_path), audio["array"], audio["sampling_rate"])
-            rows.append({
-                "filename": fname,
-                "fold": row["fold"],
-                "target": row["target"],
-                "category": row["category"],
-                "esc10": row.get("esc10", False),
-            })
+            rows.append(
+                {
+                    "filename": fname,
+                    "fold": row["fold"],
+                    "target": row["target"],
+                    "category": row["category"],
+                    "esc10": row.get("esc10", False),
+                }
+            )
         meta_dir = out / "meta"
         meta_dir.mkdir(parents=True, exist_ok=True)
         pd.DataFrame(rows).to_csv(meta_dir / "esc50.csv", index=False)
@@ -99,13 +101,9 @@ class ESC50Source(BaseSource):
 
     def _filter_samples(self, dataset: pd.DataFrame) -> pd.DataFrame:
         dataset = dataset.copy()
-        dataset["label"] = dataset["category"].apply(
-            lambda x: ESC50_TO_AUDIOSET.get(x)
-        )
+        dataset["label"] = dataset["category"].apply(lambda x: ESC50_TO_AUDIOSET.get(x))
         dataset = dataset.dropna(subset=["label"]).copy()
-        dataset["fname"] = dataset["filename"].apply(
-            lambda x: f"audio/{x}"
-        )
+        dataset["fname"] = dataset["filename"].apply(lambda x: f"audio/{x}")
         dataset["id"] = dataset["label"].apply(
             lambda x: self.ontology.get_id_from_name(x)
         )
@@ -128,6 +126,4 @@ class ESC50Source(BaseSource):
         test = self._filter_samples(test_meta)[cols]
 
         self._write_csvs(out_dir, train, val, test)
-        print(
-            f"  ESC-50: train={len(train)}  val={len(val)}  test={len(test)}"
-        )
+        print(f"  ESC-50: train={len(train)}  val={len(val)}  test={len(test)}")

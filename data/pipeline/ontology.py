@@ -41,9 +41,7 @@ class Ontology:
         }
         ontology_list.append(root_node)
 
-        self.ontology: dict[str, dict] = {
-            item["id"]: item for item in ontology_list
-        }
+        self.ontology: dict[str, dict] = {item["id"]: item for item in ontology_list}
 
         self._dfs()
         self._mark_source_ambiguous()
@@ -59,9 +57,7 @@ class Ontology:
             self.ontology[node_id]["parent_id"] = None
         else:
             parent_node = self.ontology[node_id]["parent_id"]
-            self.ontology[node_id]["depth"] = (
-                self.ontology[parent_node]["depth"] + 1
-            )
+            self.ontology[node_id]["depth"] = self.ontology[parent_node]["depth"] + 1
 
         self.ontology[node_id]["source_ambiguous"] = 0
 

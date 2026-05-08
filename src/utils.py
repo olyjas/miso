@@ -6,7 +6,6 @@ that is needed by this project's datasets and augmentations code.
 
 import importlib
 import json
-import os
 
 import librosa
 import soundfile as sf

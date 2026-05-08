@@ -11,7 +11,7 @@ class GridNetBlock(nn.Module):
         hidden_channels=32,
         freq_compression=1,
         bidirectional=False,
-):
+    ):
         super().__init__()
         time_domain_bidirectional = bidirectional  # Causal
 
@@ -136,7 +136,9 @@ class GridNetBlock(nn.Module):
             inter_rnn, (h0, c0) = self.inter_rnn(inter_rnn, (h0, c0))  # [BQ, -1, H]
             # Currently we use H(hidden_channels) = C(latent_dim) in the inter_rnn
             rnn_B, rnn_Q, rnn_T, rnn_C = B, Q, T, self.H
-            inter_rnn = inter_rnn.view([rnn_B, rnn_Q, rnn_T, rnn_C]).transpose(1, 2)  # [B, T, Q, C]
+            inter_rnn = inter_rnn.view([rnn_B, rnn_Q, rnn_T, rnn_C]).transpose(
+                1, 2
+            )  # [B, T, Q, C]
         else:
             assert T == 1, f"In edge mode, there must be only 1 frame. Found {T}"
             inter_rnn = inter_rnn.squeeze(1)  # [B, Q, H]

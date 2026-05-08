@@ -9,7 +9,7 @@ class BaseSource(ABC):
     """Common interface for all dataset sources."""
 
     name: str  # e.g. "FSD50K"
-    key: str   # e.g. "fsd50k"
+    key: str  # e.g. "fsd50k"
 
     # Mapping from source name to reference CSV directory name.
     # Override in subclass if the reference CSV dir differs from self.name.

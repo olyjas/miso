@@ -1,4 +1,5 @@
-import os, sys, glob
+import os
+import glob
 import argparse
 import random
 import json
@@ -108,7 +109,6 @@ class DiscoNoiseLabelCollector:
         val.to_csv(os.path.join(self.dataset_dir, "val.csv"), index=False)
         test.to_csv(os.path.join(self.dataset_dir, "test.csv"), index=False)
 
-
     def analyze_dataset(self):
         train = {}
         test = {}
@@ -116,7 +116,7 @@ class DiscoNoiseLabelCollector:
 
         for label in self.files:
             audio_set_label = dictionary[label]
-            
+
             # Skip labels with no AudioSet equivalent
             if audio_set_label is None:
                 continue
@@ -137,32 +137,37 @@ class DiscoNoiseLabelCollector:
                 train[label] = []
 
             for fname in train_files:
-                train[label].append(dict(
-                id=_id,
-                label=audio_set_label,
-                fname=os.path.relpath(fname, self.dataset_dir),
-                ))                
+                train[label].append(
+                    dict(
+                        id=_id,
+                        label=audio_set_label,
+                        fname=os.path.relpath(fname, self.dataset_dir),
+                    )
+                )
 
             if label not in test.keys():
                 test[label] = []
 
             for fname in test_files:
-                test[label].append(dict(
-                id=_id,
-                label=audio_set_label,
-                fname=os.path.relpath(fname, self.dataset_dir),
-            ))                
+                test[label].append(
+                    dict(
+                        id=_id,
+                        label=audio_set_label,
+                        fname=os.path.relpath(fname, self.dataset_dir),
+                    )
+                )
 
             if label not in val.keys():
                 val[label] = []
 
             for fname in val_files:
-                val[label].append(dict(
-                id=_id,
-                label=audio_set_label,
-                fname=os.path.relpath(fname, self.dataset_dir),
-            ))                
-
+                val[label].append(
+                    dict(
+                        id=_id,
+                        label=audio_set_label,
+                        fname=os.path.relpath(fname, self.dataset_dir),
+                    )
+                )
 
         # count samples
         print("Train labels count:")
@@ -183,62 +188,75 @@ class DiscoNoiseLabelCollector:
         with open(os.path.join(self.dataset_dir, "val.json"), "w") as f:
             json.dump(val, f, indent=2)
 
-
         # save to csv - create label count summary
         label_counts = []
         all_labels = set(train.keys()) | set(val.keys()) | set(test.keys())
-        
+
         for label in sorted(all_labels):
             train_count = len(train.get(label, []))
             val_count = len(val.get(label, []))
             test_count = len(test.get(label, []))
-            
+
             # Get the AudioSet label name for this label
             audio_set_label = dictionary.get(label, label)
-            
-            label_counts.append({
-                'label': label,
-                'audio_set_label': audio_set_label,
-                'train_count': train_count,
-                'val_count': val_count,
-                'test_count': test_count,
-                'total_count': train_count + val_count + test_count
-            })
-        
+
+            label_counts.append(
+                {
+                    "label": label,
+                    "audio_set_label": audio_set_label,
+                    "train_count": train_count,
+                    "val_count": val_count,
+                    "test_count": test_count,
+                    "total_count": train_count + val_count + test_count,
+                }
+            )
+
         counts_df = pd.DataFrame(label_counts)
-        counts_df.to_csv(os.path.join(self.dataset_dir, "label_counts.csv"), index=False)
-        
+        counts_df.to_csv(
+            os.path.join(self.dataset_dir, "label_counts.csv"), index=False
+        )
+
         # Also save individual dataset CSVs (flatten the lists)
         train_list = []
         for label, samples in train.items():
             train_list.extend(samples)
         train_df = pd.DataFrame(train_list)
         train_df.to_csv(os.path.join(self.dataset_dir, "train_counts.csv"), index=False)
-        
+
         val_list = []
         for label, samples in val.items():
             val_list.extend(samples)
         val_df = pd.DataFrame(val_list)
         val_df.to_csv(os.path.join(self.dataset_dir, "val_counts.csv"), index=False)
-        
+
         test_list = []
         for label, samples in test.items():
             test_list.extend(samples)
         test_df = pd.DataFrame(test_list)
         test_df.to_csv(os.path.join(self.dataset_dir, "test_counts.csv"), index=False)
-        
+
         # copy csv to datasets/gen/counts/
         import shutil
+
         copy_path = "src/datasets/gen/counts/disco_noises"
         if not os.path.exists(copy_path):
             os.makedirs(copy_path, exist_ok=True)
-        shutil.copy(os.path.join(args.dataset_dir, "label_counts.csv"), os.path.join(copy_path, "label_counts.csv"))
-        shutil.copy(os.path.join(args.dataset_dir, "train_counts.csv"), os.path.join(copy_path, "train_counts.csv"))
-        shutil.copy(os.path.join(args.dataset_dir, "val_counts.csv"), os.path.join(copy_path, "val_counts.csv"))
-        shutil.copy(os.path.join(args.dataset_dir, "test_counts.csv"), os.path.join(copy_path, "test_counts.csv"))
-
-
-
+        shutil.copy(
+            os.path.join(args.dataset_dir, "label_counts.csv"),
+            os.path.join(copy_path, "label_counts.csv"),
+        )
+        shutil.copy(
+            os.path.join(args.dataset_dir, "train_counts.csv"),
+            os.path.join(copy_path, "train_counts.csv"),
+        )
+        shutil.copy(
+            os.path.join(args.dataset_dir, "val_counts.csv"),
+            os.path.join(copy_path, "val_counts.csv"),
+        )
+        shutil.copy(
+            os.path.join(args.dataset_dir, "test_counts.csv"),
+            os.path.join(copy_path, "test_counts.csv"),
+        )
 
 
 def main(args):
@@ -247,11 +265,13 @@ def main(args):
     label_collector = DiscoNoiseLabelCollector(args.dataset_dir, args.ontology_path)
     label_collector.write_samples()
 
+
 def analyze_dataset(args):
     random.seed(0)
     np.random.seed(0)
     label_collector = DiscoNoiseLabelCollector(args.dataset_dir, args.ontology_path)
     label_collector.analyze_dataset()
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -260,7 +280,9 @@ if __name__ == "__main__":
         "--dataset_dir", type=str, default="data/BinauralCuratedDataset/disco_noises"
     )
     parser.add_argument(
-        "--analyze_dataset", action="store_true", help="Analyze dataset.",
+        "--analyze_dataset",
+        action="store_true",
+        help="Analyze dataset.",
     )
     args = parser.parse_args()
 
@@ -268,4 +290,3 @@ if __name__ == "__main__":
         analyze_dataset(args)
     else:
         main(args)
-

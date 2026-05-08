@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """SED training entry-point.
 
 Usage::
@@ -7,9 +5,10 @@ Usage::
     python -m src.sed.train --config configs/sed/ast_finetune.yaml [--data_dir ...]
 """
 
+from __future__ import annotations
+
 import argparse
 import logging
-import sys
 from pathlib import Path
 
 import torch
@@ -40,6 +39,7 @@ def _build_dataset(config: dict, split: str) -> SoundscapeDataset:
     substituting ``train_hrtf`` -> ``{split}_hrtf``.
     """
     import os
+
     data_cfg = config["data"]
     return SoundscapeDataset(
         fg_dir=os.path.join(data_cfg["fg_dir"], split),
@@ -127,8 +127,8 @@ def _build_loss_fn(config: dict, dataset, device):
     base = get_loss_function(config, dataset=dataset, device=device)
 
     def adapter(outputs, targets, inputs):
-        logits = outputs["output"]      # (B, num_classes)
-        labels = inputs["labels"]       # (B, num_classes)  multi-hot float
+        logits = outputs["output"]  # (B, num_classes)
+        labels = inputs["labels"]  # (B, num_classes)  multi-hot float
         return base(logits, labels)
 
     return adapter
@@ -167,14 +167,18 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--data_dir", type=str, default=None, help="Override data root")
     parser.add_argument(
-        "--init_from", type=str, default=None,
-        help='Initialize weights only (fresh optimizer/scheduler). Formats:\n'
-             '  "<repo_id>:<model_name>"  HF (e.g. ooshyun/sound_event_detection:finetuned_ast)\n'
-             '  path/to/foo.ckpt          Lightning checkpoint\n'
-             '  path/to/foo.pt            raw or wrapped state_dict',
+        "--init_from",
+        type=str,
+        default=None,
+        help="Initialize weights only (fresh optimizer/scheduler). Formats:\n"
+        '  "<repo_id>:<model_name>"  HF (e.g. ooshyun/sound_event_detection:finetuned_ast)\n'
+        "  path/to/foo.ckpt          Lightning checkpoint\n"
+        "  path/to/foo.pt            raw or wrapped state_dict",
     )
     parser.add_argument(
-        "--resume_from", type=str, default=None,
+        "--resume_from",
+        type=str,
+        default=None,
         help="Resume full training (model + optimizer + scheduler + epoch).",
     )
     args = parser.parse_args(argv)
@@ -189,9 +193,11 @@ def _load_initial_model(init_from: str, config: dict) -> ASTModel:
     if not p.exists() and ":" in init_from:
         repo_id, model_name = init_from.rsplit(":", 1)
         from src.sed.model import load_pretrained
+
         logger.warning(
             "Loading HF pretrained '%s:%s' — yaml 'model' section is ignored.",
-            repo_id, model_name,
+            repo_id,
+            model_name,
         )
         return load_pretrained(repo_id=repo_id, model_name=model_name)
 

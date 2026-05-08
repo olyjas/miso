@@ -87,9 +87,7 @@ def compute_recall(
         Recall as a float in ``[0, 1]``.
     """
     pred_binary = (predictions >= threshold).astype(int)
-    return float(
-        recall_score(targets, pred_binary, average=average, zero_division=0)
-    )
+    return float(recall_score(targets, pred_binary, average=average, zero_division=0))
 
 
 def compute_f1(
@@ -110,9 +108,7 @@ def compute_f1(
         F1 as a float in ``[0, 1]``.
     """
     pred_binary = (predictions >= threshold).astype(int)
-    return float(
-        f1_score(targets, pred_binary, average=average, zero_division=0)
-    )
+    return float(f1_score(targets, pred_binary, average=average, zero_division=0))
 
 
 def compute_map(

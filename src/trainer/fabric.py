@@ -62,7 +62,9 @@ def _train_one_epoch(
     # Aggregate across devices
     fabric.barrier()
     gathered_loss = fabric.all_gather(torch.tensor(total_loss, device=fabric.device))
-    gathered_n = fabric.all_gather(torch.tensor(num_elements, device=fabric.device, dtype=torch.float))
+    gathered_n = fabric.all_gather(
+        torch.tensor(num_elements, device=fabric.device, dtype=torch.float)
+    )
     avg_loss = gathered_loss.sum().item() / max(gathered_n.sum().item(), 1)
     return avg_loss
 
@@ -97,7 +99,11 @@ def _validate_one_epoch(
             if metrics_fn is not None:
                 batch_metrics = metrics_fn(outputs, targets, inputs)
                 for key, value in batch_metrics.items():
-                    val = value.item() if isinstance(value, torch.Tensor) else float(value)
+                    val = (
+                        value.item()
+                        if isinstance(value, torch.Tensor)
+                        else float(value)
+                    )
                     all_metrics[key] = all_metrics.get(key, 0.0) + val * batch_size
 
             if fabric.global_rank == 0:
@@ -110,7 +116,9 @@ def _validate_one_epoch(
     # Aggregate across devices
     fabric.barrier()
     gathered_loss = fabric.all_gather(torch.tensor(total_loss, device=fabric.device))
-    gathered_n = fabric.all_gather(torch.tensor(num_elements, device=fabric.device, dtype=torch.float))
+    gathered_n = fabric.all_gather(
+        torch.tensor(num_elements, device=fabric.device, dtype=torch.float)
+    )
     total_n = max(gathered_n.sum().item(), 1)
     avg_loss = gathered_loss.sum().item() / total_n
 
@@ -183,6 +191,7 @@ class FabricTrainerBackend(TrainerBackend):
         start_epoch: int = 0
 
         import os
+
         os.makedirs(save_dir, exist_ok=True)
 
         # -- Resume from checkpoint ---------------------------------------

@@ -3,9 +3,11 @@ Yamnet is subset of AudioSet
 SemanticHearing is subset of AudioSet
 SemanticHearing is almost subset of Yamnet "without music(Melody in AudioSet)"
 """
+
 import json
 import csv
 import yaml
+
 
 def main():
     # Load ontology.json
@@ -20,10 +22,7 @@ def main():
         for idx, row in enumerate(yamnet_class_csv):
             if idx == 0:
                 continue
-            yamnet_class_list.append({
-                'id': row[1],
-                'name': row[2]
-            })
+            yamnet_class_list.append({"id": row[1], "name": row[2]})
 
     # The class we choose(Classes.yaml) are subset of AudioSet
     semhl_classes_yaml = []
@@ -36,14 +35,12 @@ def main():
         # find the id in audioset
         id = None
         for ontology_class in ontology:
-            if class_name_audioset[0] == ontology_class['name']:
-                id = ontology_class['id']
+            if class_name_audioset[0] == ontology_class["name"]:
+                id = ontology_class["id"]
                 break
-        semhl_classes_list.append({
-            'id': id,
-            'name': class_name_audioset[0],
-            'semhl_name': class_name
-        })
+        semhl_classes_list.append(
+            {"id": id, "name": class_name_audioset[0], "semhl_name": class_name}
+        )
 
     # Print the number of classes in the ontology
     print(len(ontology))
@@ -59,10 +56,10 @@ def main():
 
     found_classes = []
     for yamnet_class in yamnet_class_list:
-        id = yamnet_class['id']
-        name = yamnet_class['name']
+        id = yamnet_class["id"]
+        name = yamnet_class["name"]
         for ontology_class in ontology:
-            if id in ontology_class['child_ids'] or id == ontology_class['id']:
+            if id in ontology_class["child_ids"] or id == ontology_class["id"]:
                 found_classes.append(name)
                 break
 
@@ -77,16 +74,16 @@ def main():
     not_found_semhl_classes = []
     for semhl_class in semhl_classes_list:
         is_found = False
-        id = semhl_class['id']
-        name = semhl_class['name']
+        id = semhl_class["id"]
+        name = semhl_class["name"]
         for yamnet_class in yamnet_class_list:
-            if id == yamnet_class['id']:
-                found_semhl_classes.append(semhl_class['semhl_name'])
+            if id == yamnet_class["id"]:
+                found_semhl_classes.append(semhl_class["semhl_name"])
                 is_found = True
                 break
 
         if not is_found:
-            not_found_semhl_classes.append(semhl_class['semhl_name'])
+            not_found_semhl_classes.append(semhl_class["semhl_name"])
 
     # Print the number of classes in the found_semhl_classes
     print(len(found_semhl_classes))
@@ -95,6 +92,7 @@ def main():
     # Print the number of classes in the not_found_semhl_classes
     print(len(not_found_semhl_classes))
     print(not_found_semhl_classes)
+
 
 if __name__ == "__main__":
     main()

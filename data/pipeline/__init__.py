@@ -38,11 +38,19 @@ def run(
     for s in run_stages:
         if s == "download":
             from .download import run_download
+
             run_download(sources, raw_dir, manual_dir, dry_run)
         elif s == "collect":
             from .collect import run_collect
-            run_collect(sources, raw_dir, curated_dir, reference_dir,
-                        allow_missing=allow_missing)
+
+            run_collect(
+                sources,
+                raw_dir,
+                curated_dir,
+                reference_dir,
+                allow_missing=allow_missing,
+            )
         elif s == "prepare":
             from .prepare import run_prepare
+
             run_prepare(curated_dir, raw_dir, output_dir, ontology, data_dir)

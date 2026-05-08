@@ -1,5 +1,4 @@
 import src.utils as utils
-import torch
 import numpy as np
 
 
@@ -11,9 +10,9 @@ class AudioAugmentations:
 
         for augmentation_desc in augmentations_list:
             assert "type" in augmentation_desc, "Augmentation has no specified type!"
-            assert (
-                "prob" in augmentation_desc
-            ), "Augmentation has no specified probability!"
+            assert "prob" in augmentation_desc, (
+                "Augmentation has no specified probability!"
+            )
 
             # If no params are specified, assume there are no params given
             if "params" not in augmentation_desc:

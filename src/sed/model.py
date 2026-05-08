@@ -1,10 +1,10 @@
-from __future__ import annotations
-
 """AST-based Sound Event Detection model.
 
 Provides a ``load_pretrained()`` helper for checkpoint loading from
 HuggingFace Hub.
 """
+
+from __future__ import annotations
 
 import json
 import logging
@@ -69,6 +69,7 @@ def load_pretrained(
 
         if info.get("loader") == "yamnet":
             from src.sed.yamnet import YAMNetModel
+
             model = YAMNetModel(device=device)
         else:
             model = ASTHuggingFace(
@@ -128,7 +129,5 @@ def load_pretrained(
         model = model.to(device)
 
     model.eval()
-    logger.info(
-        "Loaded pre-trained %s from %s/%s", model_name, repo_id, subfolder
-    )
+    logger.info("Loaded pre-trained %s from %s/%s", model_name, repo_id, subfolder)
     return model

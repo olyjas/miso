@@ -50,13 +50,15 @@ class FSD50KSource(BaseSource):
                 if not audio_path.exists():
                     audio = row["audio"]
                     sf.write(str(audio_path), audio["array"], audio["sampling_rate"])
-                rows.append({
-                    "filename": row["filename"],
-                    "split": split_name,
-                    "labels": row.get("labels", ""),
-                    "mids": row.get("mids", ""),
-                    "fname": f"FSD50K.{split_name}_audio/{fname}",
-                })
+                rows.append(
+                    {
+                        "filename": row["filename"],
+                        "split": split_name,
+                        "labels": row.get("labels", ""),
+                        "mids": row.get("mids", ""),
+                        "fname": f"FSD50K.{split_name}_audio/{fname}",
+                    }
+                )
         pd.DataFrame(rows).to_csv(out / "metadata.csv", index=False)
         (out / ".done").touch()
         print(f"  ✓ {self.name} downloaded ({len(rows)} samples)")
@@ -107,7 +109,9 @@ class FSD50KSource(BaseSource):
         out_dir = curated_dir / self.name
 
         # Detect layout: Zenodo (has collection CSVs) or HF (has metadata.csv)
-        zenodo_meta = dataset_dir / "FSD50K.metadata" / "collection" / "collection_dev.csv"
+        zenodo_meta = (
+            dataset_dir / "FSD50K.metadata" / "collection" / "collection_dev.csv"
+        )
         hf_meta = dataset_dir / "metadata.csv"
 
         if zenodo_meta.exists():
@@ -160,9 +164,7 @@ class FSD50KSource(BaseSource):
             (val_samples, "FSD50K.dev_audio"),
             (test_samples, "FSD50K.eval_audio"),
         ]:
-            df["fname"] = df["fname"].apply(
-                lambda x, d=src_dir: f"{d}/{x}.wav"
-            )
+            df["fname"] = df["fname"].apply(lambda x, d=src_dir: f"{d}/{x}.wav")
 
         # Common label constraint
         common_labels = (
@@ -175,7 +177,9 @@ class FSD50KSource(BaseSource):
         test_samples = test_samples[test_samples["label"].isin(common_labels)]
 
         cols = ["fname", "label", "id"]
-        self._write_csvs(out_dir, train_samples[cols], val_samples[cols], test_samples[cols])
+        self._write_csvs(
+            out_dir, train_samples[cols], val_samples[cols], test_samples[cols]
+        )
         print(
             f"  FSD50K (Zenodo): train={len(train_samples)}  "
             f"val={len(val_samples)}  test={len(test_samples)}"
@@ -221,7 +225,9 @@ class FSD50KSource(BaseSource):
         test_samples = test_samples[test_samples["label"].isin(common_labels)]
 
         cols = ["fname", "label", "id"]
-        self._write_csvs(out_dir, train_samples[cols], val_samples[cols], test_samples[cols])
+        self._write_csvs(
+            out_dir, train_samples[cols], val_samples[cols], test_samples[cols]
+        )
         print(
             f"  FSD50K (HF): train={len(train_samples)}  "
             f"val={len(val_samples)}  test={len(test_samples)}"

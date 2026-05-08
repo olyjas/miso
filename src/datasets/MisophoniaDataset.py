@@ -6,8 +6,6 @@ import os
 import logging
 import time
 import torch
-import signal
-import threading
 import pyloudnorm as pyln
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 
@@ -49,6 +47,7 @@ except ImportError:
     SCIPY_AVAILABLE = False
     logger.warning("SciPy not available for fallback resampling")
 
+
 class TensorEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, np.integer):
@@ -60,6 +59,7 @@ class TensorEncoder(json.JSONEncoder):
         elif isinstance(obj, torch.Tensor):
             return obj.tolist()
         return super(TensorEncoder, self).default(obj)
+
 
 def get_snr(target, mixture, EPS=1e-9):
     """
@@ -270,7 +270,10 @@ class MisophoniaDataset(Dataset):
             self.hrtf_list = (
                 hrtf_list
                 if root_dataset_dir in hrtf_list[0]
-                else [os.path.join(root_dataset_dir, _hrtf_list) for _hrtf_list in hrtf_list]
+                else [
+                    os.path.join(root_dataset_dir, _hrtf_list)
+                    for _hrtf_list in hrtf_list
+                ]
             )
         self.split = split
         self.sr = sr
@@ -311,7 +314,9 @@ class MisophoniaDataset(Dataset):
         self.snr_range_fg = snr_range_fg
         self.snr_range_bg = snr_range_bg
         self.num_output_channels = num_output_channels
-        self.target_multichannel = target_multichannel # output one channel process every speaker
+        self.target_multichannel = (
+            target_multichannel  # output one channel process every speaker
+        )
 
         self.samples_per_epoch = samples_per_epoch
         self.ref_db = ref_db
@@ -498,9 +503,7 @@ class MisophoniaDataset(Dataset):
                     orig_freq=orig_sr,
                     new_freq=target_sr,
                     resampling_method="sinc_interp_hann",
-                ).to(
-                    self.resample_device
-                )
+                ).to(self.resample_device)
 
                 resampled = resampler(audio_tensor)
                 logger.debug(
@@ -633,9 +636,9 @@ class MisophoniaDataset(Dataset):
                         )
 
                         if len(audio.shape) > 1:
-                            assert (
-                                audio.shape[0] == 2
-                            ), "If multichannel, must be binaural"
+                            assert audio.shape[0] == 2, (
+                                "If multichannel, must be binaural"
+                            )
 
                         # Pad zeros to get to target duration
                         pad_start = time.time()
@@ -692,9 +695,9 @@ class MisophoniaDataset(Dataset):
                         )
                         return None
 
-                    assert (
-                        audio.shape[-1] == total_frames
-                    ), f"Number of samples in audio incorrect. Expected {audio.shape[-1]} found {total_frames}."
+                    assert audio.shape[-1] == total_frames, (
+                        f"Number of samples in audio incorrect. Expected {audio.shape[-1]} found {total_frames}."
+                    )
                     phase4_time = time.time() - phase4_start
                     logger.debug(
                         f"MisophoniaDataset(sample_snippet): Phase 4 (validation) took {phase4_time:.4f}s"
@@ -835,7 +838,7 @@ class MisophoniaDataset(Dataset):
         """
         src_audio_list = [
             os.path.join(src_path, x)
-            for x in glob_re(".*\.[wav|flac]", os.listdir(src_path))
+            for x in glob_re(r".*\.[wav|flac]", os.listdir(src_path))
         ]
 
         # Check if we have any audio files
@@ -874,7 +877,7 @@ class MisophoniaDataset(Dataset):
                     f"MisophoniaDataset: Power dB of src audio: {pwr_dB} <-> threshold: {pwr_threshold}"
                 )
                 if pwr_dB > pwr_threshold:
-                    logger.debug(f"MisophoniaDataset: Returning src audio")
+                    logger.debug("MisophoniaDataset: Returning src audio")
                     return audio
                 _attempts -= 1
 
@@ -978,7 +981,7 @@ class MisophoniaDataset(Dataset):
             self.get_random_fg_audio(rng, n_fg_sources)
         )
 
-        logger.debug(f"MisophoniaDataset: Choosing random FG audio")
+        logger.debug("MisophoniaDataset: Choosing random FG audio")
         logger.debug(f"MisophoniaDataset: Valid FG labels: {valid_fg_labels}")
         logger.debug(f"MisophoniaDataset: Valid src ids: {valid_src_ids}")
 
@@ -1072,7 +1075,7 @@ class MisophoniaDataset(Dataset):
                 f"Noise audio LUFS verification failed for {noise_audio}, label {noise_labels}. \n"
                 f"Expected LUFS: {self.ref_db}, Actual LUFS: {get_lufs(noise_audio, self.sr)}"
             )
-            logger.debug(f"MisophoniaDataset: LUFS verification passed")
+            logger.debug("MisophoniaDataset: LUFS verification passed")
 
         # Simulate spatialized sources
         seed = rng.randint(1, 1000000)
@@ -1087,8 +1090,8 @@ class MisophoniaDataset(Dataset):
             gt = torch.zeros((n_fg_sources, mixture.shape[-1]))
         else:
             gt = torch.zeros((self.num_output_channels, mixture.shape[-1]))
-        
-        logger.debug(f"Creating mixture and ground truth (GT)")
+
+        logger.debug("Creating mixture and ground truth (GT)")
 
         # Assign FG sources to GT, ensuring correct shape
         idx_valid_src_ids_rank = {}
@@ -1103,7 +1106,7 @@ class MisophoniaDataset(Dataset):
             else:
                 gt[idx_valid_src_ids_rank[src_id]] = torch.from_numpy(audio).float()
 
-        logger.debug(f"Assigning FG sources to GT, ensuring correct shape")
+        logger.debug("Assigning FG sources to GT, ensuring correct shape")
 
         # Convert BG labels to strings for compatibility
         bg_labels = [str(label) for label in bg_labels]
@@ -1113,9 +1116,9 @@ class MisophoniaDataset(Dataset):
         # noise_labels = [str(label) for label in noise_labels] # TODO(shoh): multiple noise sources
         logger.debug(f"Noise labels: {noise_labels}")
 
-        assert (
-            mixture.shape[-1] == gt.shape[-1]
-        ), f"Mixture and GT have different lengths: {mixture.shape[-1]} != {gt.shape[-1]}"
+        assert mixture.shape[-1] == gt.shape[-1], (
+            f"Mixture and GT have different lengths: {mixture.shape[-1]} != {gt.shape[-1]}"
+        )
 
         return mixture, gt, fg_onehot, valid_fg_labels, bg_labels, noise_labels
 
@@ -1140,7 +1143,7 @@ class MisophoniaDataset(Dataset):
             # print(f"[DEBUG] Fetching sample {idx}...")
             # Create mixture
 
-            logger.debug(f"MisophoniaDataset(__getitem__): Creating mixture and target")
+            logger.debug("MisophoniaDataset(__getitem__): Creating mixture and target")
             mixture, target, one_hot, fg_labels, bg_labels, noise_labels = (
                 self.create_scene(rng)
             )
@@ -1153,13 +1156,13 @@ class MisophoniaDataset(Dataset):
             )
 
             # Sanity checks
-            assert torch.sum(one_hot) == len(
-                set(fg_labels)
-            ), f"One-hot sum: {torch.sum(one_hot)} != len(set(fg_labels)): {len(set(fg_labels))}"
+            assert torch.sum(one_hot) == len(set(fg_labels)), (
+                f"One-hot sum: {torch.sum(one_hot)} != len(set(fg_labels)): {len(set(fg_labels))}"
+            )
             # print(f"[DEBUG] fg_labels before padding in __getitem__: {fg_labels}")
 
             logger.debug(
-                f"MisophoniaDataset(__getitem__): Padding fg_labels to fixed max_fg slots"
+                "MisophoniaDataset(__getitem__): Padding fg_labels to fixed max_fg slots"
             )
             fg_labels = fg_labels + [
                 "None" for i in range(self.num_fg_sounds_range[1] - n_fg)
@@ -1178,7 +1181,7 @@ class MisophoniaDataset(Dataset):
             # Apply perturbations to entire audio
             if self.split == "train":
                 logger.debug(
-                    f"MisophoniaDataset(__getitem__): Applying perturbations to entire audio"
+                    "MisophoniaDataset(__getitem__): Applying perturbations to entire audio"
                 )
                 mixture, target = self.perturbations.apply_random_augmentations(
                     mixture, target, rng
@@ -1191,13 +1194,13 @@ class MisophoniaDataset(Dataset):
             # print(f"Final bg_labels length: {len(bg_labels)}")
 
             # Normalize mixture audio
-            logger.debug(f"MisophoniaDataset(__getitem__): Normalizing mixture audio")
+            logger.debug("MisophoniaDataset(__getitem__): Normalizing mixture audio")
             peak = torch.abs(mixture).max()
             if peak > 1:
                 mixture /= peak
                 target /= peak
 
-            logger.debug(f"MisophoniaDataset(__getitem__): Creating inputs")
+            logger.debug("MisophoniaDataset(__getitem__): Creating inputs")
             inputs = {
                 "mixture": mixture,
                 "label_vector": one_hot,
@@ -1211,7 +1214,7 @@ class MisophoniaDataset(Dataset):
                 inputs["bg_labels"] = bg_labels
                 inputs["folder"] = idx
 
-            logger.debug(f"MisophoniaDataset(__getitem__): Creating targets")
+            logger.debug("MisophoniaDataset(__getitem__): Creating targets")
             targets = {
                 "target": target,
                 "num_target_speakers": len(fg_labels),
@@ -1231,7 +1234,7 @@ class MisophoniaDataset(Dataset):
                 f"MisophoniaDataset(__getitem__): idx {idx}: took {time.time() - start:.3f}s"
             )
             logger.debug(
-                f"MisophoniaDataset(__getitem__): Returning inputs and targets"
+                "MisophoniaDataset(__getitem__): Returning inputs and targets"
             )
             return inputs, targets
 
@@ -1267,7 +1270,9 @@ class MisophoniaDataset(Dataset):
             metadata = {
                 "file_path": out_sample_dir,
                 "num_target_speakers": targets["num_target_speakers"],
-                "target_labels": [label for label in inputs["fg_labels"] if label is not None],
+                "target_labels": [
+                    label for label in inputs["fg_labels"] if label is not None
+                ],
                 "total_labels": targets["total_labels"],
             }
             config = {

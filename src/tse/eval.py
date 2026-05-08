@@ -1,5 +1,6 @@
 from __future__ import annotations
 import warnings
+
 warnings.filterwarnings("ignore", category=FutureWarning, module="torchmetrics")
 
 """TSE evaluation entry point.
@@ -45,9 +46,11 @@ from src.metrics.tse import Metrics, compute_metrics_tse
 # Model loading
 # ---------------------------------------------------------------------------
 
+
 def _import_attr(path: str):
     """Dynamic import: 'a.b.c.Cls' -> getattr(import_module('a.b.c'), 'Cls')."""
     import importlib
+
     module_path, attr = path.rsplit(".", 1)
     return getattr(importlib.import_module(module_path), attr)
 
@@ -61,17 +64,13 @@ def _load_model_from_run_dir(run_dir: str, use_last: bool = True):
     # Build HL module (contains model, optimizer, etc.)
     from src.tse.hl_module import PLModule
 
-    pl_module = PLModule(
-        fabric=None, **params["pl_module_args"]
-    )
+    pl_module = PLModule(fabric=None, **params["pl_module_args"])
 
     # Load checkpoint
     name = "last.pt" if use_last else "best.pt"
     ckpt_path = os.path.join(run_dir, f"checkpoints/{name}")
     if not os.path.exists(ckpt_path):
-        raise FileNotFoundError(
-            f"Checkpoint not found: {ckpt_path}"
-        )
+        raise FileNotFoundError(f"Checkpoint not found: {ckpt_path}")
     pl_module.load_state(ckpt_path)
     logger.info("Loaded checkpoint %s (epoch %d)", ckpt_path, pl_module.epoch)
 
@@ -81,13 +80,16 @@ def _load_model_from_run_dir(run_dir: str, use_last: bool = True):
 def _load_model_from_pretrained(repo_id: str, model_name: str):
     """Load model from HuggingFace Hub."""
     from src.tse.model import load_pretrained
+
     model = load_pretrained(repo_id=repo_id, model_name=model_name)
     # Also need config for dataset args
     from huggingface_hub import hf_hub_download
     from src.tse.model import _MODEL_NAME_MAP
+
     run_dir_name = _MODEL_NAME_MAP.get(model_name, model_name)
     config_path = hf_hub_download(
-        repo_id=repo_id, filename=f"{run_dir_name}/config.json",
+        repo_id=repo_id,
+        filename=f"{run_dir_name}/config.json",
     )
     with open(config_path) as f:
         params = json.load(f)
@@ -97,6 +99,7 @@ def _load_model_from_pretrained(repo_id: str, model_name: str):
 # ---------------------------------------------------------------------------
 # Dataset loading
 # ---------------------------------------------------------------------------
+
 
 def _build_dataset(params: dict, data_dir: str | None = None):
     """Build test dataset from config."""
@@ -108,13 +111,15 @@ def _build_dataset(params: dict, data_dir: str | None = None):
     elif "root_dataset_dir" in params:
         test_data_args["root_dataset_dir"] = params["root_dataset_dir"]
 
-    dataset_cls_path = params.get("onflight_val_dataset",
-                                   "src.datasets.MisophoniaDataset.MisophoniaDataset")
+    dataset_cls_path = params.get(
+        "onflight_val_dataset", "src.datasets.MisophoniaDataset.MisophoniaDataset"
+    )
     try:
         dataset_cls = _import_attr(dataset_cls_path)
     except (ImportError, ModuleNotFoundError):
         # Fallback: try from new repo's soundscape dataset
         from src.datasets.soundscape_dataset import SoundscapeDataset
+
         logger.warning("Could not import %s, using SoundscapeDataset", dataset_cls_path)
         d = test_data_args
         return SoundscapeDataset(
@@ -126,7 +131,10 @@ def _build_dataset(params: dict, data_dir: str | None = None):
             duration=d.get("duration", 5),
             num_fg_range=(d.get("num_fg_sounds_min", 1), d.get("num_fg_sounds_max", 5)),
             num_bg_range=(d.get("num_bg_sounds_min", 1), d.get("num_bg_sounds_max", 3)),
-            num_noise_range=(d.get("num_noise_sounds_min", 1), d.get("num_noise_sounds_max", 1)),
+            num_noise_range=(
+                d.get("num_noise_sounds_min", 1),
+                d.get("num_noise_sounds_max", 1),
+            ),
             snr_range_fg=tuple(d.get("snr_range_fg", [5, 15])),
             snr_range_bg=tuple(d.get("snr_range_bg", [0, 10])),
             hrtf_type=d.get("hrtf_type", "CIPIC"),
@@ -140,6 +148,7 @@ def _build_dataset(params: dict, data_dir: str | None = None):
 # ---------------------------------------------------------------------------
 # Evaluation loop
 # ---------------------------------------------------------------------------
+
 
 @torch.no_grad()
 def evaluate(model, test_loader, params, device, output_dir):
@@ -202,9 +211,7 @@ def evaluate(model, test_loader, params, device, output_dir):
                 if "None" in targets["fg_labels"][i]:
                     length_fg_labels -= 1
 
-            output = torch.zeros(
-                (1, length_fg_labels, inputs["mixture"].shape[-1])
-            )
+            output = torch.zeros((1, length_fg_labels, inputs["mixture"].shape[-1]))
             label_vector_target_one = torch.zeros_like(label_vector)
             index_input_label_vector_one = torch.where(label_vector == 1)[1]
 
@@ -281,6 +288,7 @@ def evaluate(model, test_loader, params, device, output_dir):
 
     # Per-sample CSV
     import pandas as pd
+
     df = pd.DataFrame(records)
     csv_path = os.path.join(output_dir, "results.csv")
     df.to_csv(csv_path, index=False)
@@ -308,6 +316,7 @@ def evaluate(model, test_loader, params, device, output_dir):
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 def _load_model_from_config(config_path: str, checkpoint_path: str):
     """Load model from a YAML config + Lightning or raw checkpoint."""
@@ -360,7 +369,9 @@ def _load_model_from_config(config_path: str, checkpoint_path: str):
         model.load_state_dict(ckpt, strict=True)
 
     model.eval()
-    logger.info("Loaded model from config=%s, checkpoint=%s", config_path, checkpoint_path)
+    logger.info(
+        "Loaded model from config=%s, checkpoint=%s", config_path, checkpoint_path
+    )
 
     # Convert YAML config to params dict for dataset building
     params = _yaml_to_eval_params(cfg)
@@ -372,7 +383,9 @@ def _yaml_to_eval_params(cfg: dict) -> dict:
     return {"_yaml_cfg": cfg}
 
 
-def _build_dataset_from_yaml(cfg: dict, data_dir: str | None = None, num_samples: int | None = None):
+def _build_dataset_from_yaml(
+    cfg: dict, data_dir: str | None = None, num_samples: int | None = None
+):
     """Build test SoundscapeDataset directly from YAML config."""
     from src.datasets.soundscape_dataset import SoundscapeDataset
     from pathlib import Path
@@ -392,7 +405,9 @@ def _build_dataset_from_yaml(cfg: dict, data_dir: str | None = None, num_samples
         if not Path(hrtf_list).is_absolute():
             hrtf_list = str(Path(data_dir) / hrtf_list)
 
-    samples = num_samples if num_samples is not None else d.get("samples_per_epoch", 2000)
+    samples = (
+        num_samples if num_samples is not None else d.get("samples_per_epoch", 2000)
+    )
 
     return SoundscapeDataset(
         fg_dir=fg_dir,
@@ -415,26 +430,46 @@ def _build_dataset_from_yaml(cfg: dict, data_dir: str | None = None, num_samples
 
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Evaluate TSE model")
-    parser.add_argument("--run_dir", type=str, default=None,
-                        help="Path to model run directory (config.json + checkpoints/)")
-    parser.add_argument("--pretrained", type=str, default=None,
-                        help="HuggingFace repo ID")
-    parser.add_argument("--model", type=str, default="orange_pi",
-                        help="Model name for --pretrained")
-    parser.add_argument("--config", type=str, default=None,
-                        help="YAML config path (use with --checkpoint)")
-    parser.add_argument("--checkpoint", type=str, default=None,
-                        help="Checkpoint path (Lightning or raw)")
-    parser.add_argument("--data_dir", type=str, default=None,
-                        help="Override dataset root (e.g., /scr)")
-    parser.add_argument("--output_dir", type=str, default="runs/tse/eval",
-                        help="Output directory")
-    parser.add_argument("--num_samples", type=int, default=None,
-                        help="Override number of eval samples")
-    parser.add_argument("--sr", type=int, default=16000,
-                        help="Sample rate")
-    parser.add_argument("--use_last", action="store_true", default=True,
-                        help="Use last.pt instead of best.pt")
+    parser.add_argument(
+        "--run_dir",
+        type=str,
+        default=None,
+        help="Path to model run directory (config.json + checkpoints/)",
+    )
+    parser.add_argument(
+        "--pretrained", type=str, default=None, help="HuggingFace repo ID"
+    )
+    parser.add_argument(
+        "--model", type=str, default="orange_pi", help="Model name for --pretrained"
+    )
+    parser.add_argument(
+        "--config",
+        type=str,
+        default=None,
+        help="YAML config path (use with --checkpoint)",
+    )
+    parser.add_argument(
+        "--checkpoint",
+        type=str,
+        default=None,
+        help="Checkpoint path (Lightning or raw)",
+    )
+    parser.add_argument(
+        "--data_dir", type=str, default=None, help="Override dataset root (e.g., /scr)"
+    )
+    parser.add_argument(
+        "--output_dir", type=str, default="runs/tse/eval", help="Output directory"
+    )
+    parser.add_argument(
+        "--num_samples", type=int, default=None, help="Override number of eval samples"
+    )
+    parser.add_argument("--sr", type=int, default=16000, help="Sample rate")
+    parser.add_argument(
+        "--use_last",
+        action="store_true",
+        default=True,
+        help="Use last.pt instead of best.pt",
+    )
     args = parser.parse_args(argv)
 
     logging.basicConfig(
@@ -462,14 +497,19 @@ def main(argv: list[str] | None = None) -> None:
     # Load dataset
     if "_yaml_cfg" in params:
         test_dataset = _build_dataset_from_yaml(
-            params["_yaml_cfg"], data_dir=args.data_dir, num_samples=args.num_samples,
+            params["_yaml_cfg"],
+            data_dir=args.data_dir,
+            num_samples=args.num_samples,
         )
     else:
         if args.num_samples is not None:
             params["onflight_test_data_args"]["samples_per_epoch"] = args.num_samples
         test_dataset = _build_dataset(params, data_dir=args.data_dir)
     test_loader = torch.utils.data.DataLoader(
-        test_dataset, batch_size=1, shuffle=False, num_workers=0,
+        test_dataset,
+        batch_size=1,
+        shuffle=False,
+        num_workers=0,
     )
     logger.info("Test dataset: %d samples", len(test_dataset))
 

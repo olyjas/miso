@@ -25,6 +25,7 @@ Usage:
         --data_dir /path/to/BinauralCuratedDataset \
         --tau_raw_dir /path/to/TAU-2019
 """
+
 from __future__ import annotations
 
 import argparse
@@ -50,9 +51,7 @@ def curate_samples(samples: list[str], is_test: bool = False) -> pd.DataFrame:
         )
     else:
         # eval: numeric id only
-        processed["label"] = processed["fname"].apply(
-            lambda x: x.split(".")[0]
-        )
+        processed["label"] = processed["fname"].apply(lambda x: x.split(".")[0])
     processed["id"] = processed["fname"].apply(
         lambda x: "-".join(x.split("-")[2:]).split(".")[0]
     )
@@ -109,9 +108,7 @@ def _ensure_tau_links(data_dir: str, tau_audio_dir: str) -> None:
             print(f"  Linked {dst} -> {src}")
 
 
-def build_noise_scaper_fmt(
-    data_dir: str, tau_raw_dir: str | None = None
-) -> None:
+def build_noise_scaper_fmt(data_dir: str, tau_raw_dir: str | None = None) -> None:
     """Build TAU CSVs + noise_scaper_fmt/."""
     random.seed(0)
     np.random.seed(0)
@@ -122,12 +119,26 @@ def build_noise_scaper_fmt(
     _ensure_tau_links(data_dir, tau_audio_dir)
 
     # Step 1: Discover samples
-    dev_samples = sorted(glob.glob(os.path.join(
-        tau_audio_dir, "TAU-urban-acoustic-scenes-2019-development", "audio", "*.wav"
-    )))
-    eval_samples = sorted(glob.glob(os.path.join(
-        tau_audio_dir, "TAU-urban-acoustic-scenes-2019-evaluation", "audio", "*.wav"
-    )))
+    dev_samples = sorted(
+        glob.glob(
+            os.path.join(
+                tau_audio_dir,
+                "TAU-urban-acoustic-scenes-2019-development",
+                "audio",
+                "*.wav",
+            )
+        )
+    )
+    eval_samples = sorted(
+        glob.glob(
+            os.path.join(
+                tau_audio_dir,
+                "TAU-urban-acoustic-scenes-2019-evaluation",
+                "audio",
+                "*.wav",
+            )
+        )
+    )
     print(f"TAU dev: {len(dev_samples)} files")
     print(f"TAU eval: {len(eval_samples)} files")
 
@@ -187,20 +198,25 @@ def build_noise_scaper_fmt(
 
         # Keep common labels
         common_labels = list(
-            set(train_samples["label"].unique())
-            & set(val_samples["label"].unique())
+            set(train_samples["label"].unique()) & set(val_samples["label"].unique())
         )
         train_samples = train_samples[train_samples["label"].isin(common_labels)]
         val_samples = val_samples[val_samples["label"].isin(common_labels)]
 
         # Write CSVs
         cols = ["label", "fname", "id"]
-        for name, df in [("train", train_samples), ("val", val_samples), ("test", test_samples)]:
+        for name, df in [
+            ("train", train_samples),
+            ("val", val_samples),
+            ("test", test_samples),
+        ]:
             csv_path = os.path.join(csv_dir, f"{name}.csv")
             df[cols].to_csv(csv_path, index=False)
             print(f"  Wrote {csv_path} ({len(df)} rows)")
 
-    print(f"  TAU splits: train={len(train_samples)} val={len(val_samples)} test={len(test_samples)}")
+    print(
+        f"  TAU splits: train={len(train_samples)} val={len(val_samples)} test={len(test_samples)}"
+    )
 
     # Step 3: Create noise_scaper_fmt symlinks
     dataset_name = "TAU-acoustic-sounds"
@@ -228,7 +244,7 @@ def build_noise_scaper_fmt(
             if not os.path.lexists(dest):
                 os.symlink(src, dest)
 
-    print(f"\n✓ noise_scaper_fmt built:")
+    print("\n✓ noise_scaper_fmt built:")
     for split in ("train", "val", "test"):
         split_dir = os.path.join(symlink_dir, split)
         if os.path.isdir(split_dir):
@@ -243,13 +259,17 @@ def main():
         description="Build TAU CSVs + noise_scaper_fmt from BinauralCuratedDataset"
     )
     parser.add_argument(
-        "--data_dir", type=str, required=True,
-        help="Path to extracted BinauralCuratedDataset/"
+        "--data_dir",
+        type=str,
+        required=True,
+        help="Path to extracted BinauralCuratedDataset/",
     )
     parser.add_argument(
-        "--tau_raw_dir", type=str, default=None,
+        "--tau_raw_dir",
+        type=str,
+        default=None,
         help="Path to raw TAU data (e.g. TAU-2019/) containing "
-             "TAU-urban-acoustic-scenes-2019-{development,evaluation}/"
+        "TAU-urban-acoustic-scenes-2019-{development,evaluation}/",
     )
     args = parser.parse_args()
 

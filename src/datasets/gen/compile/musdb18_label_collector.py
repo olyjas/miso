@@ -1,6 +1,6 @@
-import os, glob
+import os
+import glob
 import argparse
-import sys
 
 import pandas as pd
 import numpy as np
@@ -9,7 +9,8 @@ import ffmpegio
 import tqdm
 import json
 
-import torchaudio, librosa
+import torchaudio
+import librosa
 from scipy.io.wavfile import write as wavwrite
 
 from ontology import Ontology
@@ -125,17 +126,21 @@ class MUSDB18LabelCollector:
         vocals_dir = os.path.join(preproc_dir, "vocals")
         analyze_dict = {}
         analyze_dict[dataset_type] = {}
-        analyze_dict[dataset_type]["Singing"] = len(glob.glob(os.path.join(vocals_dir, "*.wav")))
-        analyze_dict[dataset_type]["Melody"] = len(glob.glob(os.path.join(instrumental_dir, "*.wav")))
+        analyze_dict[dataset_type]["Singing"] = len(
+            glob.glob(os.path.join(vocals_dir, "*.wav"))
+        )
+        analyze_dict[dataset_type]["Melody"] = len(
+            glob.glob(os.path.join(instrumental_dir, "*.wav"))
+        )
         return analyze_dict
 
 
 def main(args):
     random.seed(0)
 
-    assert os.path.exists(
-        args.dataset_dir
-    ), f"Path {args.dataset_dir} to dataset is invalid (not found)"
+    assert os.path.exists(args.dataset_dir), (
+        f"Path {args.dataset_dir} to dataset is invalid (not found)"
+    )
 
     audio_dir = os.path.join(args.dataset_dir, "audio")
 
@@ -175,6 +180,7 @@ def main(args):
     collector.write_csv(args.dataset_dir, "test")
     collector.write_csv(args.dataset_dir, "val")
 
+
 def analyze_dataset(args):
     collector = MUSDB18LabelCollector(args.ontology_path)
     analyze_dict = collector.analyze_dataset(args.dataset_dir, "train")
@@ -201,25 +207,31 @@ def analyze_dataset(args):
         json.dump(analyze_dict["test"], f, indent=2)
 
     # save to csv - create label count summary
-    all_labels = set(analyze_dict["train"].keys()) | set(analyze_dict["val"].keys()) | set(analyze_dict["test"].keys())
+    all_labels = (
+        set(analyze_dict["train"].keys())
+        | set(analyze_dict["val"].keys())
+        | set(analyze_dict["test"].keys())
+    )
     label_counts = []
-    
+
     for label in sorted(all_labels):
         train_count = analyze_dict["train"].get(label, 0)
         val_count = analyze_dict["val"].get(label, 0)
         test_count = analyze_dict["test"].get(label, 0)
-        
-        label_counts.append({
-            'label': label,
-            'train_count': train_count,
-            'val_count': val_count,
-            'test_count': test_count,
-            'total_count': train_count + val_count + test_count
-        })
-    
+
+        label_counts.append(
+            {
+                "label": label,
+                "train_count": train_count,
+                "val_count": val_count,
+                "test_count": test_count,
+                "total_count": train_count + val_count + test_count,
+            }
+        )
+
     counts_df = pd.DataFrame(label_counts)
     counts_df.to_csv(os.path.join(args.dataset_dir, "label_counts.csv"), index=False)
-    
+
     # # Also ensure individual dataset CSVs are saved
     # collector.write_csv(args.dataset_dir, "train")
     # collector.write_csv(args.dataset_dir, "val")
@@ -227,13 +239,18 @@ def analyze_dataset(args):
 
     # copy csv to datasets/gen/counts/
     import shutil
+
     copy_path = "src/datasets/gen/counts/musdb18"
     if not os.path.exists(copy_path):
         os.makedirs(copy_path, exist_ok=True)
-    shutil.copy(os.path.join(args.dataset_dir, "label_counts.csv"), os.path.join(copy_path, "label_counts.csv"))
+    shutil.copy(
+        os.path.join(args.dataset_dir, "label_counts.csv"),
+        os.path.join(copy_path, "label_counts.csv"),
+    )
     # shutil.copy(os.path.join(args.dataset_dir, "train_counts.csv"), os.path.join(copy_path, "train_counts.csv"))
     # shutil.copy(os.path.join(args.dataset_dir, "val_counts.csv"), os.path.join(copy_path, "val_counts.csv"))
     # shutil.copy(os.path.join(args.dataset_dir, "test_counts.csv"), os.path.join(copy_path, "test_counts.csv"))
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -243,7 +260,9 @@ if __name__ == "__main__":
     )
     parser.add_argument("--segment_duration_s", type=str, default=15)
     parser.add_argument(
-        "--analyze_dataset", action="store_true", help="Analyze dataset.",
+        "--analyze_dataset",
+        action="store_true",
+        help="Analyze dataset.",
     )
     args = parser.parse_args()
 

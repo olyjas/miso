@@ -1,7 +1,6 @@
 import os
 import argparse
 import json
-import urllib.request
 
 from sklearn.model_selection import train_test_split
 import pandas as pd
@@ -210,7 +209,7 @@ class FSD50KLabelCollector:
         train_counts = train_samples["label"].value_counts()
         val_counts = val_samples["label"].value_counts()
         test_counts = test_samples["label"].value_counts()
-        
+
         print("Train labels count:")
         print(train_counts.to_string())
         print("Val labels count:")
@@ -243,40 +242,59 @@ class FSD50KLabelCollector:
             plt.show()
 
         # save to csv - create label count summary
-        all_labels = set(train_counts.index) | set(val_counts.index) | set(test_counts.index)
+        all_labels = (
+            set(train_counts.index) | set(val_counts.index) | set(test_counts.index)
+        )
         label_counts_list = []
-        
+
         for label in sorted(all_labels):
             train_count = train_counts.get(label, 0)
             val_count = val_counts.get(label, 0)
             test_count = test_counts.get(label, 0)
-            
-            label_counts_list.append({
-                'label': label,
-                'train_count': train_count,
-                'val_count': val_count,
-                'test_count': test_count,
-                'total_count': train_count + val_count + test_count
-            })
-        
+
+            label_counts_list.append(
+                {
+                    "label": label,
+                    "train_count": train_count,
+                    "val_count": val_count,
+                    "test_count": test_count,
+                    "total_count": train_count + val_count + test_count,
+                }
+            )
+
         counts_df = pd.DataFrame(label_counts_list)
         # Save CSVs in the dataset directory (not stats subdirectory)
         counts_df.to_csv(os.path.join(self.root_dir, "label_counts.csv"), index=False)
-        
+
         # Also save individual dataset CSVs
-        train_samples.to_csv(os.path.join(self.root_dir, "train_counts.csv"), index=False)
+        train_samples.to_csv(
+            os.path.join(self.root_dir, "train_counts.csv"), index=False
+        )
         val_samples.to_csv(os.path.join(self.root_dir, "val_counts.csv"), index=False)
         test_samples.to_csv(os.path.join(self.root_dir, "test_counts.csv"), index=False)
 
         # copy csv to datasets/gen/counts/
         import shutil
+
         copy_path = "src/datasets/gen/counts/FSD50K"
         if not os.path.exists(copy_path):
             os.makedirs(copy_path, exist_ok=True)
-        shutil.copy(os.path.join(args.dataset_dir, "label_counts.csv"), os.path.join(copy_path, "label_counts.csv"))
-        shutil.copy(os.path.join(args.dataset_dir, "train_counts.csv"), os.path.join(copy_path, "train_counts.csv"))
-        shutil.copy(os.path.join(args.dataset_dir, "val_counts.csv"), os.path.join(copy_path, "val_counts.csv"))
-        shutil.copy(os.path.join(args.dataset_dir, "test_counts.csv"), os.path.join(copy_path, "test_counts.csv"))
+        shutil.copy(
+            os.path.join(args.dataset_dir, "label_counts.csv"),
+            os.path.join(copy_path, "label_counts.csv"),
+        )
+        shutil.copy(
+            os.path.join(args.dataset_dir, "train_counts.csv"),
+            os.path.join(copy_path, "train_counts.csv"),
+        )
+        shutil.copy(
+            os.path.join(args.dataset_dir, "val_counts.csv"),
+            os.path.join(copy_path, "val_counts.csv"),
+        )
+        shutil.copy(
+            os.path.join(args.dataset_dir, "test_counts.csv"),
+            os.path.join(copy_path, "test_counts.csv"),
+        )
 
 
 def main(args):
@@ -289,6 +307,7 @@ def main(args):
     fsd50k_curator = FSD50KLabelCollector(args.dataset_dir, args.ontology_path)
     fsd50k_curator.write_samples()
 
+
 def analyze_dataset(args):
     random.seed(0)
     np.random.seed(0)
@@ -296,6 +315,7 @@ def analyze_dataset(args):
     os.makedirs(save_path, exist_ok=True)
     fsd50k_curator = FSD50KLabelCollector(args.dataset_dir, args.ontology_path)
     fsd50k_curator.plot_stats(save_path=save_path)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -307,7 +327,9 @@ if __name__ == "__main__":
         help="Root directory for the FSD50K dataset",
     )
     parser.add_argument(
-        "--analyze_dataset", action="store_true", help="Analyze dataset.",
+        "--analyze_dataset",
+        action="store_true",
+        help="Analyze dataset.",
     )
     args = parser.parse_args()
 
@@ -315,5 +337,3 @@ if __name__ == "__main__":
         analyze_dataset(args)
     else:
         main(args)
-
-

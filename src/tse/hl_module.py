@@ -1,13 +1,8 @@
-import os
 import time
 from numpy import mean
 
 import torch
-import torch.nn as nn
-import torch.optim as optim
-import wandb
 from src.metrics.tse import Metrics, compute_metrics_tse
-from src.metrics.tse import compute_decay
 
 import logging
 
@@ -19,6 +14,7 @@ def _import_attr(name):
     """Dynamically import a class/function from a dotted path string."""
     module_path, _, attr_name = name.rpartition(".")
     import importlib
+
     module = importlib.import_module(module_path)
     return getattr(module, attr_name)
 
@@ -47,7 +43,7 @@ class PLModule(object):
     ):
         self.fabric = fabric
         self.model_name = model
-        if "SemanticHearing" in model: # waveformer model
+        if "SemanticHearing" in model:  # waveformer model
             self.model = _import_attr(model)(**model_params["waveformer_params"])
         else:
             if "use_first_ln" not in model_params.keys():
@@ -65,7 +61,9 @@ class PLModule(object):
         self.samples_per_speaker_number = samples_per_speaker_number
         if "num_output_channels" in model_params.keys():
             if "SemanticHearing" in model:
-                self.model_output_channels = model_params["waveformer_params"]["out_channels"]
+                self.model_output_channels = model_params["waveformer_params"][
+                    "out_channels"
+                ]
             else:
                 self.model_output_channels = model_params["num_output_channels"]
         else:
@@ -190,9 +188,9 @@ class PLModule(object):
             self.metric_values[self.epoch][metric]["num_elements"] = torch.sum(nums)
 
     def on_epoch_end(self, best_path, wandb_run=None):
-        assert self.epoch + 1 == len(
-            self.metric_values
-        ), "Current epoch must be equal to length of metrics (0-indexed)"
+        assert self.epoch + 1 == len(self.metric_values), (
+            "Current epoch must be equal to length of metrics (0-indexed)"
+        )
 
         # Gather metrics from multiple processes
         self.gather_metrics()
@@ -335,7 +333,7 @@ class PLModule(object):
                 self.metric_values[epoch_str][name]["step"] = []
             self.metric_values[epoch_str][name]["step"].append(value)
 
-            logger.debug(f"Logging metric: ")
+            logger.debug("Logging metric: ")
             logger.debug(f"Metric {self.metric_values[epoch_str][name]}")
 
         if on_epoch:
@@ -359,10 +357,12 @@ class PLModule(object):
             ),
         }
         outputs = self.model(input_dict)
-        if "SemanticHearing" in self.model_name and \
-            targets["num_target_speakers"][0] == 1 and \
-            self.model_output_channels > 1:
-            outputs["output"] = outputs["output"].mean(dim=1, keepdim=True) # make mono
+        if (
+            "SemanticHearing" in self.model_name
+            and targets["num_target_speakers"][0] == 1
+            and self.model_output_channels > 1
+        ):
+            outputs["output"] = outputs["output"].mean(dim=1, keepdim=True)  # make mono
 
         mix = inputs["mixture"]  # Take first channel in mixture as reference
 
@@ -374,9 +374,9 @@ class PLModule(object):
         n_speakers = targets["num_target_speakers"]
 
         # Compute loss
-        assert (
-            est.shape == gt.shape
-        ), f"est{est.shape} and gt{gt.shape} shapes should be same"
+        assert est.shape == gt.shape, (
+            f"est{est.shape} and gt{gt.shape} shapes should be same"
+        )
 
         try:
             loss = self.loss_fn(est=est, gt=gt).mean()
@@ -525,8 +525,6 @@ class PLModule(object):
                     self.optimizer, schedulers, milestones
                 )
             else:
-                scheduler = _import_attr(scheduler)(
-                    self.optimizer, **scheduler_params
-                )
+                scheduler = _import_attr(scheduler)(self.optimizer, **scheduler_params)
 
         return scheduler

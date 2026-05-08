@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Unified soundscape dataset for TSE and SED tasks.
 
 Synthesises binaural mixtures on-the-fly by sampling foreground, background,
@@ -7,11 +5,12 @@ and noise sources, normalising loudness, spatialising via HRTF simulation,
 and mixing.
 """
 
+from __future__ import annotations
+
 import logging
 import math
 import os
 import re
-import time
 import traceback as tb
 
 import numpy as np
@@ -44,6 +43,7 @@ except ImportError:
 # ---------------------------------------------------------------------------
 # Audio helpers
 # ---------------------------------------------------------------------------
+
 
 def _glob_re(pattern: str, strings):
     """Filter *strings* by a regex *pattern*."""
@@ -90,6 +90,7 @@ def _normalize_to_lufs(
 # ---------------------------------------------------------------------------
 # Dataset
 # ---------------------------------------------------------------------------
+
 
 class SoundscapeDataset(Dataset):
     """On-the-fly binaural soundscape synthesis for TSE or SED.
@@ -201,7 +202,7 @@ class SoundscapeDataset(Dataset):
         """Read audio and convert to mono float32."""
         if sndfile.name.endswith(".flac"):
             audio = sndfile.read(frames=num_frames, dtype="int32")
-            audio = (audio / (2 ** 31 - 1)).astype(np.float32)
+            audio = (audio / (2**31 - 1)).astype(np.float32)
         else:
             audio = sndfile.read(frames=num_frames, dtype="float32")
         if audio.ndim > 1:
@@ -296,7 +297,7 @@ class SoundscapeDataset(Dataset):
                     break
                 if not require_power:
                     return audio
-                pwr_dB = 10 * np.log10(np.mean(audio ** 2) + 1e-9)
+                pwr_dB = 10 * np.log10(np.mean(audio**2) + 1e-9)
                 if pwr_dB > pwr_threshold:
                     return audio
             if outer > 0 and outer % 100 == 0:
@@ -317,7 +318,11 @@ class SoundscapeDataset(Dataset):
         mixture, target, label_vector, fg_labels, n_fg
         """
         n_fg = rng.randint(self.num_fg_range[0], self.num_fg_range[1] + 1)
-        n_bg = rng.randint(self.num_bg_range[0], self.num_bg_range[1] + 1) if self.bg_sounds else 0
+        n_bg = (
+            rng.randint(self.num_bg_range[0], self.num_bg_range[1] + 1)
+            if self.bg_sounds
+            else 0
+        )
         n_noise = rng.randint(self.num_noise_range[0], self.num_noise_range[1] + 1)
 
         # --- Foreground ---
@@ -331,7 +336,9 @@ class SoundscapeDataset(Dataset):
             if src_id in fg_src_ids:
                 continue
             label = self.fg_sounds[src_id]
-            audio = self._get_random_snippet(self.fg_dir, label, rng, require_power=True)
+            audio = self._get_random_snippet(
+                self.fg_dir, label, rng, require_power=True
+            )
             if audio is not None:
                 fg_audios.append(audio)
                 fg_labels.append(label)
@@ -345,7 +352,9 @@ class SoundscapeDataset(Dataset):
                 if len(bg_audios) >= n_bg:
                     break
                 label = rng.choice(self.bg_sounds)
-                audio = self._get_random_snippet(self.bg_dir, label, rng, require_power=True)
+                audio = self._get_random_snippet(
+                    self.bg_dir, label, rng, require_power=True
+                )
                 if audio is not None:
                     bg_audios.append(audio)
 
@@ -356,7 +365,9 @@ class SoundscapeDataset(Dataset):
                 if noise_audio is not None:
                     break
                 label = rng.choice(self.noise_sounds)
-                noise_audio = self._get_random_snippet(self.noise_dir, label, rng, require_power=False)
+                noise_audio = self._get_random_snippet(
+                    self.noise_dir, label, rng, require_power=False
+                )
         if noise_audio is None:
             noise_audio = np.zeros(int(self.sr * self.duration), dtype=np.float32)
 
@@ -367,11 +378,17 @@ class SoundscapeDataset(Dataset):
         bg_lufs = self.ref_db + bg_snr
 
         for i, a in enumerate(fg_audios):
-            fg_audios[i], _ = _normalize_to_lufs(a, self.sr, fg_lufs, tolerance=self.lufs_tolerance)
+            fg_audios[i], _ = _normalize_to_lufs(
+                a, self.sr, fg_lufs, tolerance=self.lufs_tolerance
+            )
         for i, a in enumerate(bg_audios):
-            bg_audios[i], _ = _normalize_to_lufs(a, self.sr, bg_lufs, tolerance=self.lufs_tolerance)
+            bg_audios[i], _ = _normalize_to_lufs(
+                a, self.sr, bg_lufs, tolerance=self.lufs_tolerance
+            )
         if n_noise > 0:
-            noise_audio, _ = _normalize_to_lufs(noise_audio, self.sr, self.ref_db, tolerance=self.lufs_tolerance)
+            noise_audio, _ = _normalize_to_lufs(
+                noise_audio, self.sr, self.ref_db, tolerance=self.lufs_tolerance
+            )
 
         # --- HRTF spatialisation ---
         seed = int(rng.randint(1, 1_000_000))
@@ -413,7 +430,9 @@ class SoundscapeDataset(Dataset):
 
             # Augmentations (train only)
             if self.split == "train":
-                mixture, target = self.perturbations.apply_random_augmentations(mixture, target, rng)
+                mixture, target = self.perturbations.apply_random_augmentations(
+                    mixture, target, rng
+                )
 
             # Peak normalise
             peak = torch.abs(mixture).max()

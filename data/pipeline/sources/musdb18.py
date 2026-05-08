@@ -56,9 +56,7 @@ def _convert_videos(
 
         # Remaining audio must be at least half a chunk
         num_chunks = (
-            1
-            + (duration_samples - segment_samples // 2 - 1)
-            // segment_samples
+            1 + (duration_samples - segment_samples // 2 - 1) // segment_samples
         )
 
         for chunk_id in tqdm(range(num_chunks), leave=False):
@@ -81,9 +79,7 @@ def _convert_videos(
                 _write_audio(out, vocals, sr)
 
             if (np.abs(instrumental) > 5e-3).any():
-                out = os.path.join(
-                    instrumental_dir, f"{song_name}_i_{chunk_id}.wav"
-                )
+                out = os.path.join(instrumental_dir, f"{song_name}_i_{chunk_id}.wav")
                 _write_audio(out, instrumental, sr)
 
 
@@ -150,14 +146,15 @@ class MUSDB18Source(BaseSource):
         print(f"  ✓ {self.name} downloaded")
 
     def _write_csv(
-        self, dataset_dir: str, dataset_type: str, out_dir: str,
+        self,
+        dataset_dir: str,
+        dataset_type: str,
+        out_dir: str,
     ) -> pd.DataFrame:
         samples: list[dict] = []
         preproc_dir = os.path.join(dataset_dir, "audio", dataset_type)
 
-        for sample_path in glob.glob(
-            os.path.join(preproc_dir, "vocals", "*.wav")
-        ):
+        for sample_path in glob.glob(os.path.join(preproc_dir, "vocals", "*.wav")):
             rel_path = os.path.relpath(sample_path, dataset_dir)
             label = "Singing"
             samples.append(
@@ -198,6 +195,7 @@ class MUSDB18Source(BaseSource):
         ]
         if all(os.path.exists(c) for c in ref_csvs):
             import shutil
+
             logger.info("MUSDB18: using existing reference CSVs")
             for csv_path in ref_csvs:
                 shutil.copy2(csv_path, out_dir)
@@ -219,12 +217,8 @@ class MUSDB18Source(BaseSource):
             )
             os.makedirs(audio_dir, exist_ok=True)
 
-            test_videos = sorted(
-                glob.glob(os.path.join(dataset_dir, "test", "*"))
-            )
-            train_videos = sorted(
-                glob.glob(os.path.join(dataset_dir, "train", "*"))
-            )
+            test_videos = sorted(glob.glob(os.path.join(dataset_dir, "test", "*")))
+            train_videos = sorted(glob.glob(os.path.join(dataset_dir, "train", "*")))
 
             # 90:10 train:val split
             random.shuffle(train_videos)

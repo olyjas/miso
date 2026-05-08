@@ -2,11 +2,9 @@ import os
 import glob
 import argparse
 import json
-import urllib.request
 
 from sklearn.model_selection import train_test_split
 import pandas as pd
-import matplotlib.pyplot as plt
 import numpy as np
 import random
 
@@ -215,33 +213,44 @@ class TAULabelCollector:
             json.dump(analyze_dict["test"], f, indent=2)
 
         # save to csv - create label count summary
-        all_labels = set(analyze_dict["train"].keys()) | set(analyze_dict["val"].keys()) | set(analyze_dict["test"].keys())
+        all_labels = (
+            set(analyze_dict["train"].keys())
+            | set(analyze_dict["val"].keys())
+            | set(analyze_dict["test"].keys())
+        )
         label_counts = []
-        
+
         for label in sorted(all_labels):
             train_count = analyze_dict["train"].get(label, 0)
             val_count = analyze_dict["val"].get(label, 0)
             test_count = analyze_dict["test"].get(label, 0)
-            
-            label_counts.append({
-                'label': label,
-                'train_count': train_count,
-                'val_count': val_count,
-                'test_count': test_count,
-                'total_count': train_count + val_count + test_count
-            })
-        
+
+            label_counts.append(
+                {
+                    "label": label,
+                    "train_count": train_count,
+                    "val_count": val_count,
+                    "test_count": test_count,
+                    "total_count": train_count + val_count + test_count,
+                }
+            )
+
         counts_df = pd.DataFrame(label_counts)
         counts_df.to_csv(os.path.join(dataset_dir, "label_counts.csv"), index=False)
-        
+
         # copy csv to datasets/gen/counts/
         import shutil
+
         copy_path = "src/datasets/gen/counts/tau"
         if not os.path.exists(copy_path):
             os.makedirs(copy_path, exist_ok=True)
-        shutil.copy(os.path.join(dataset_dir, "label_counts.csv"), os.path.join(copy_path, "label_counts.csv"))
-        
+        shutil.copy(
+            os.path.join(dataset_dir, "label_counts.csv"),
+            os.path.join(copy_path, "label_counts.csv"),
+        )
+
         return analyze_dict
+
 
 def main(args):
     flag_analyze_dataset = args.analyze_dataset
@@ -268,11 +277,11 @@ def main(args):
             break
 
     if not is_dataset_csv_exists:
-        logger.debug(f"Dataset CSV does not exist, curating samples")
+        logger.debug("Dataset CSV does not exist, curating samples")
         tau_curator = TAULabelCollector(dataset_path)
         tau_curator.write_samples(dataset_path)
 
-    logger.debug(f"Linking train, val, test to output directory")
+    logger.debug("Linking train, val, test to output directory")
     os.makedirs(output_dir, exist_ok=True)
 
     # link train, val, test to output directory
@@ -319,7 +328,9 @@ def main(args):
         logger.debug(f"Number of samples in {dataset_type}: {num_samples}")
         assert num_samples == len(
             pd.read_csv(os.path.join(dataset_path, f"{dataset_type}.csv"))
-        ), f"Number of samples in {dataset_type} is not equal to the number of samples in the dataset: {len(pd.read_csv(os.path.join(dataset_path, f'{dataset_type}.csv')))}"
+        ), (
+            f"Number of samples in {dataset_type} is not equal to the number of samples in the dataset: {len(pd.read_csv(os.path.join(dataset_path, f'{dataset_type}.csv')))}"
+        )
 
 
 if __name__ == "__main__":
@@ -338,11 +349,16 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--analyze_dataset", action="store_true", help="Analyze dataset.",
+        "--analyze_dataset",
+        action="store_true",
+        help="Analyze dataset.",
     )
 
     parser.add_argument(
-        "--ontology_path", type=str, default="ontology.json", help="Ontology path",
+        "--ontology_path",
+        type=str,
+        default="ontology.json",
+        help="Ontology path",
     )
 
     args = parser.parse_args()

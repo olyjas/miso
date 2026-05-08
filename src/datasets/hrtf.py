@@ -34,7 +34,9 @@ class CIPICSimulator:
     # Internal helpers
     # ------------------------------------------------------------------
 
-    def _convolve(self, src: np.ndarray, hrtf: sofa.Database, ir_idx: int) -> np.ndarray:
+    def _convolve(
+        self, src: np.ndarray, hrtf: sofa.Database, ir_idx: int
+    ) -> np.ndarray:
         """Convolve a mono source with a binaural IR and return (2, T)."""
         idx_map = {"M": ir_idx}
         ir_sr = hrtf.Data.SamplingRate.get_values(indices=idx_map).item()
@@ -94,9 +96,7 @@ class CIPICSimulator:
                 logger.error("Error opening SOFA file: %s", exc)
                 hrtf = None
         if hrtf is None:
-            raise ValueError(
-                f"Failed to open any SOFA file after {max_trials} trials"
-            )
+            raise ValueError(f"Failed to open any SOFA file after {max_trials} trials")
 
         try:
             n_positions = hrtf.Dimensions.M

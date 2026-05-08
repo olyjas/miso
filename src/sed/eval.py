@@ -1,7 +1,9 @@
 from __future__ import annotations
 import warnings
+
 warnings.filterwarnings("ignore", category=FutureWarning, module="torchmetrics")
 import os
+
 os.environ["TRANSFORMERS_NO_ADVISORY_WARNINGS"] = "1"
 
 """SED evaluation entry-point.
@@ -34,6 +36,7 @@ import yaml
 from torch.utils.data import DataLoader
 
 import transformers
+
 transformers.logging.set_verbosity_error()
 
 from src.metrics.sed import ClassificationMetrics
@@ -43,10 +46,26 @@ logger = logging.getLogger(__name__)
 
 # 20 classes in alphabetical order (matching MisophoniaDataset)
 CLASS_NAMES = [
-    "alarm_clock", "baby_cry", "birds_chirping", "car_horn", "cat",
-    "cock_a_doodle_doo", "computer_typing", "cricket", "dog", "door_knock",
-    "glass_breaking", "gunshot", "hammer", "music", "ocean",
-    "singing", "siren", "speech", "thunderstorm", "toilet_flush",
+    "alarm_clock",
+    "baby_cry",
+    "birds_chirping",
+    "car_horn",
+    "cat",
+    "cock_a_doodle_doo",
+    "computer_typing",
+    "cricket",
+    "dog",
+    "door_knock",
+    "glass_breaking",
+    "gunshot",
+    "hammer",
+    "music",
+    "ocean",
+    "singing",
+    "siren",
+    "speech",
+    "thunderstorm",
+    "toilet_flush",
 ]
 
 # Dataset class → AudioSet class name mapping (from Classes.yaml)
@@ -103,9 +122,15 @@ def _load_base_ast(device: str = "cuda"):
             label_filter.append(idx)
             mapped_names.append(dataset_class)
         else:
-            logger.warning("Class %s → %s not found in AudioSet", dataset_class, audioset_name)
+            logger.warning(
+                "Class %s → %s not found in AudioSet", dataset_class, audioset_name
+            )
 
-    logger.info("Label filter: %d/%d classes mapped to AudioSet indices", len(label_filter), len(CLASS_NAMES))
+    logger.info(
+        "Label filter: %d/%d classes mapped to AudioSet indices",
+        len(label_filter),
+        len(CLASS_NAMES),
+    )
     for i, (dc, af) in enumerate(zip(mapped_names, label_filter)):
         logger.info("  %s → AudioSet[%d] (%s)", dc, af, class_names_527[af])
 
@@ -113,7 +138,11 @@ def _load_base_ast(device: str = "cuda"):
 
 
 def _run_base_ast_inference(
-    model, feature_extractor, label_filter, dataloader, device,
+    model,
+    feature_extractor,
+    label_filter,
+    dataloader,
+    device,
 ):
     """Run inference with base 527-class AST + softmax + label filter.
 
@@ -145,7 +174,9 @@ def _run_base_ast_inference(
                 waveform_np, sampling_rate=16000, return_tensors="pt"
             )
             inputs = {
-                k: v.to(device) if isinstance(v, torch.Tensor) else torch.tensor(v).to(device)
+                k: v.to(device)
+                if isinstance(v, torch.Tensor)
+                else torch.tensor(v).to(device)
                 for k, v in inputs.items()
             }
 
@@ -344,8 +375,7 @@ def _find_optimal_thresholds(
             targets[:, c], predictions[:, c]
         )
         f1_scores = (
-            2 * precision[:-1] * recall[:-1]
-            / (precision[:-1] + recall[:-1] + 1e-10)
+            2 * precision[:-1] * recall[:-1] / (precision[:-1] + recall[:-1] + 1e-10)
         )
         best_idx = int(np.argmax(f1_scores))
         name = CLASS_NAMES[c] if c < len(CLASS_NAMES) else f"label_{c}"
@@ -356,8 +386,7 @@ def _find_optimal_thresholds(
         targets.ravel(), predictions.ravel()
     )
     f1_scores = (
-        2 * precision[:-1] * recall[:-1]
-        / (precision[:-1] + recall[:-1] + 1e-10)
+        2 * precision[:-1] * recall[:-1] / (precision[:-1] + recall[:-1] + 1e-10)
     )
     best_idx = int(np.argmax(f1_scores))
     thresholds_dict["overall"] = float(thresholds[best_idx])
@@ -464,14 +493,10 @@ def _load_model(args, config):
     elif args.checkpoint:
         model_cfg = config["model"] if config else {}
         model = ASTModel(
-            model_name=model_cfg.get(
-                "name", "MIT/ast-finetuned-audioset-10-10-0.4593"
-            ),
+            model_name=model_cfg.get("name", "MIT/ast-finetuned-audioset-10-10-0.4593"),
             num_labels=model_cfg.get("num_classes", 20),
         )
-        state_dict = torch.load(
-            args.checkpoint, map_location="cpu", weights_only=False
-        )
+        state_dict = torch.load(args.checkpoint, map_location="cpu", weights_only=False)
         if "model_state_dict" in state_dict:
             state_dict = state_dict["model_state_dict"]
         elif "model" in state_dict:
@@ -499,13 +524,16 @@ def parse_args(argv=None):
     parser.add_argument("--pretrained", type=str, default=None)
     parser.add_argument("--model", type=str, default=None)
     parser.add_argument(
-        "--base_ast", action="store_true",
+        "--base_ast",
+        action="store_true",
         help="Use base 527-class AST with softmax + label filter (paper eval)",
     )
 
     # Dataset
     parser.add_argument(
-        "--dataset", type=str, choices=["misophonia", "soundscape"],
+        "--dataset",
+        type=str,
+        choices=["misophonia", "soundscape"],
         default="misophonia",
     )
     parser.add_argument("--config", type=str, default=None)
@@ -525,19 +553,26 @@ def parse_args(argv=None):
 
     # Threshold
     parser.add_argument(
-        "--thresholds", type=str, default=None,
+        "--thresholds",
+        type=str,
+        default=None,
         help="Path to per-class optimal thresholds JSON",
     )
     parser.add_argument(
-        "--threshold", type=float, default=0.5,
+        "--threshold",
+        type=float,
+        default=0.5,
         help="Global threshold (used if --thresholds not set)",
     )
     parser.add_argument(
-        "--find_thresholds", action="store_true",
+        "--find_thresholds",
+        action="store_true",
         help="Find optimal per-class thresholds on val set, then evaluate test set",
     )
     parser.add_argument(
-        "--val_samples", type=int, default=None,
+        "--val_samples",
+        type=int,
+        default=None,
         help="Number of val samples for threshold search (default: same as --samples)",
     )
 
@@ -577,7 +612,9 @@ def main(argv=None):
 
     if use_base_ast:
         logger.info("=== Using base 527-class AST (paper eval) ===")
-        ast_model, feature_extractor, label_filter, class_names_527 = _load_base_ast(device)
+        ast_model, feature_extractor, label_filter, class_names_527 = _load_base_ast(
+            device
+        )
         total_params = sum(p.numel() for p in ast_model.parameters())
         base_ast_components = (ast_model, feature_extractor, label_filter)
     else:
@@ -590,10 +627,13 @@ def main(argv=None):
     def _build_split_dataset(split):
         if args.dataset == "misophonia":
             if split == "test":
-                return _build_misophonia_dataset(args, config or {}), _collate_misophonia
+                return _build_misophonia_dataset(
+                    args, config or {}
+                ), _collate_misophonia
             else:
                 # val split
                 from src.datasets.MisophoniaDataset import MisophoniaDataset
+
                 fg_max = args.num_fg_max if args.num_fg_max is not None else 5
                 root = args.root_dataset_dir or "/scr"
                 sr = args.sr or 16000
@@ -604,18 +644,35 @@ def main(argv=None):
                     bg_sounds_dir=f"BinauralCuratedDataset/bg_scaper_fmt/{split}",
                     noise_sounds_dir=f"BinauralCuratedDataset/noise_scaper_fmt/{split}",
                     hrtf_list=f"BinauralCuratedDataset/hrtf/CIPIC/{split}_hrtf.txt",
-                    split=split, sr=sr, duration=duration, hrtf_type="CIPIC",
+                    split=split,
+                    sr=sr,
+                    duration=duration,
+                    hrtf_type="CIPIC",
                     num_total_labels=20,
-                    num_fg_sounds_min=(args.num_fg_min if args.num_fg_min is not None else 1),
+                    num_fg_sounds_min=(
+                        args.num_fg_min if args.num_fg_min is not None else 1
+                    ),
                     num_fg_sounds_max=fg_max,
-                    num_bg_sounds_min=(args.num_bg_min if args.num_bg_min is not None else 1),
-                    num_bg_sounds_max=(args.num_bg_max if args.num_bg_max is not None else 3),
-                    num_noise_sounds_min=(args.num_noise_min if args.num_noise_min is not None else 1),
-                    num_noise_sounds_max=(args.num_noise_max if args.num_noise_max is not None else 1),
+                    num_bg_sounds_min=(
+                        args.num_bg_min if args.num_bg_min is not None else 1
+                    ),
+                    num_bg_sounds_max=(
+                        args.num_bg_max if args.num_bg_max is not None else 3
+                    ),
+                    num_noise_sounds_min=(
+                        args.num_noise_min if args.num_noise_min is not None else 1
+                    ),
+                    num_noise_sounds_max=(
+                        args.num_noise_max if args.num_noise_max is not None else 1
+                    ),
                     num_output_channels=max(fg_max, 5),
-                    snr_range_fg=[5, 15], snr_range_bg=[0, 10], ref_db=-50,
-                    augmentations=[], samples_per_epoch=samples,
-                    onflight_mode=1, root_dataset_dir=root,
+                    snr_range_fg=[5, 15],
+                    snr_range_bg=[0, 10],
+                    ref_db=-50,
+                    augmentations=[],
+                    samples_per_epoch=samples,
+                    onflight_mode=1,
+                    root_dataset_dir=root,
                 )
                 return ds, _collate_misophonia
         else:
@@ -648,8 +705,12 @@ def main(argv=None):
         logger.info("=== Finding optimal thresholds on validation set ===")
         val_ds, val_collate = _build_split_dataset("val")
         val_loader = DataLoader(
-            val_ds, batch_size=args.batch_size, shuffle=False,
-            num_workers=args.num_workers, collate_fn=val_collate, pin_memory=True,
+            val_ds,
+            batch_size=args.batch_size,
+            shuffle=False,
+            num_workers=args.num_workers,
+            collate_fn=val_collate,
+            pin_memory=True,
         )
         val_predictions, val_targets = _run_inference(val_loader, "val")
         found_thresholds = _find_optimal_thresholds(val_predictions, val_targets)
@@ -662,15 +723,20 @@ def main(argv=None):
     # ---- Build test dataset ----
     test_ds, collate_fn = _build_split_dataset("test")
     test_loader = DataLoader(
-        test_ds, batch_size=args.batch_size, shuffle=False,
-        num_workers=args.num_workers, collate_fn=collate_fn, pin_memory=True,
+        test_ds,
+        batch_size=args.batch_size,
+        shuffle=False,
+        num_workers=args.num_workers,
+        collate_fn=collate_fn,
+        pin_memory=True,
     )
 
     # ---- Run inference on test set ----
     predictions, targets = _run_inference(test_loader, "test")
     logger.info(
         "Inference complete: predictions %s, targets %s",
-        predictions.shape, targets.shape,
+        predictions.shape,
+        targets.shape,
     )
 
     # ---- Compute metrics ----
@@ -692,7 +758,10 @@ def main(argv=None):
         logger.info("Using fixed threshold: %.4f", threshold)
         metrics_calculator = ClassificationMetrics()
         results = metrics_calculator.compute_all(
-            predictions, targets, threshold=threshold, per_label=True,
+            predictions,
+            targets,
+            threshold=threshold,
+            per_label=True,
             class_names=CLASS_NAMES,
         )
 
@@ -705,7 +774,11 @@ def main(argv=None):
     # ---- Save results ----
     output_dir = Path(
         args.output_dir
-        or (config.get("checkpointing", {}).get("save_dir", "runs/sed") if config else "eval_results/sed")
+        or (
+            config.get("checkpointing", {}).get("save_dir", "runs/sed")
+            if config
+            else "eval_results/sed"
+        )
     )
     output_dir.mkdir(parents=True, exist_ok=True)
 

@@ -4,6 +4,7 @@ Reads per-dataset ``{train,val,test}.csv`` files produced by the collect
 stage, creates foreground/background symlinks in Scaper layout, copies CIPIC
 HRTF files, and writes ``start_times.csv`` with silence-trimming metadata.
 """
+
 from __future__ import annotations
 
 import glob
@@ -146,7 +147,9 @@ def write_scaper_source(
 
     logger.info("Consolidating %s/%s ...", dataset_name, split)
 
-    for _, row in tqdm(dataset.iterrows(), total=len(dataset), desc=f"{dataset_name}/{split}"):
+    for _, row in tqdm(
+        dataset.iterrows(), total=len(dataset), desc=f"{dataset_name}/{split}"
+    ):
         sample_id = row["id"]
 
         if sample_id in id2classname:
@@ -200,9 +203,7 @@ def prepare_hrtf(raw_dir: Path, output_dir: Path) -> None:
     cipic_dst = output_dir / "hrtf" / "CIPIC"
     cipic_dst.mkdir(parents=True, exist_ok=True)
 
-    sofa_files = sorted(
-        glob.glob(str(cipic_src / "**" / "*.sofa"), recursive=True)
-    )
+    sofa_files = sorted(glob.glob(str(cipic_src / "**" / "*.sofa"), recursive=True))
 
     if not sofa_files:
         logger.warning("No CIPIC SOFA files found in %s", cipic_src)

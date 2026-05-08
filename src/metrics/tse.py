@@ -28,7 +28,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-import os
 import random
 import string
 
@@ -100,7 +99,7 @@ def compute_metrics_tse(
             if not output_channels_match_label_dim:
                 num_labels = label_vector.sum(dim=1, keepdim=True).int()
                 logger.debug(
-                    f"Computing metrics for output channels not matching label dimensions..."
+                    "Computing metrics for output channels not matching label dimensions..."
                 )
                 logger.debug(f"num_labels: {num_labels}")
                 for idx_batch in range(B):
@@ -160,7 +159,7 @@ def compute_metrics_tse(
                         )
             else:
                 logger.debug(
-                    f"Computing metrics for output channels matching label dimensions..."
+                    "Computing metrics for output channels matching label dimensions..."
                 )
                 for idx_batch in range(B):
                     index = torch.tensor([idx_batch]).to(gt.device)
@@ -246,22 +245,22 @@ class Metrics(nn.Module):
         elif name == "snr_per_channel_mix":
             self.func = lambda est, gt, mix: snr(preds=mix, target=gt)
         elif name == "snr_i":
-            self.func = lambda est, gt, mix: snr(preds=est, target=gt) - snr(
-                preds=mix, target=gt
+            self.func = lambda est, gt, mix: (
+                snr(preds=est, target=gt) - snr(preds=mix, target=gt)
             )
         elif name == "si_snr":
             self.func = lambda est, gt, mix: si_snr(preds=est, target=gt)
         elif name == "si_snr_i":
-            self.func = lambda est, gt, mix: si_snr(preds=est, target=gt) - si_snr(
-                preds=mix, target=gt
+            self.func = lambda est, gt, mix: (
+                si_snr(preds=est, target=gt) - si_snr(preds=mix, target=gt)
             )
         elif name == "si_sdr" or name == "si_sdr_per_channel":
             self.func = lambda est, gt, mix: si_sdr(preds=est, target=gt)
         elif name == "si_sdr_per_channel_mix":
             self.func = lambda est, gt, mix: si_sdr(preds=mix, target=gt)
         elif name == "si_sdr_i":
-            self.func = lambda est, gt, mix: si_sdr(preds=est, target=gt) - si_sdr(
-                preds=mix, target=gt
+            self.func = lambda est, gt, mix: (
+                si_sdr(preds=est, target=gt) - si_sdr(preds=mix, target=gt)
             )
         elif name == "STOI":
             self.func = lambda est, gt, mix: STOI(preds=est, target=gt, fs=fs)
@@ -289,6 +288,7 @@ class Metrics(nn.Module):
             )
         elif name == "Multi_Reso_L1":
             from src.tse.loss import MultiResoFuseLoss
+
             mult_ireso_loss = MultiResoFuseLoss(**kwargs)
             self.func = lambda est, gt, mix: mult_ireso_loss(est=est, gt=gt)
         else:
@@ -300,9 +300,9 @@ class Metrics(nn.Module):
         output: (*)
         """
         types = type(est)
-        assert type(gt) == types and (
-            type(mix) == types or mix is None
-        ), "All arrays must be the same type"
+        assert type(gt) == types and (type(mix) == types or mix is None), (
+            "All arrays must be the same type"
+        )
         if types == np.ndarray:
             est, gt = torch.from_numpy(est), torch.from_numpy(gt)
             if mix is not None:

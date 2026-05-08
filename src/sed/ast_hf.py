@@ -11,8 +11,6 @@ import torch.nn as nn
 import numpy as np
 from typing import Tuple, Optional, Union, List
 import logging
-from pathlib import Path
-import urllib.request
 
 try:
     from fvcore.nn import FlopCountAnalysis
@@ -59,9 +57,7 @@ class ASTHuggingFace(nn.Module):
         )
 
         if device is None:
-            self.device = torch.device(
-                "cuda" if torch.cuda.is_available() else "cpu"
-            )
+            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         elif isinstance(device, str):
             self.device = torch.device(device)
         else:
@@ -71,9 +67,7 @@ class ASTHuggingFace(nn.Module):
         logger.info(f"Using device: {self.device}")
 
         # Load feature extractor and model
-        self.feature_extractor = AutoFeatureExtractor.from_pretrained(
-            model_name
-        )
+        self.feature_extractor = AutoFeatureExtractor.from_pretrained(model_name)
         self.ast_model = (
             ASTForAudioClassification.from_pretrained(model_name)
             if num_labels == self.NUM_CLASSES
@@ -102,16 +96,16 @@ class ASTHuggingFace(nn.Module):
                     break
         self.ids = ids
 
-        assert len(self.ids) == len(
-            self.class_names
-        ), f"Number of IDs and class names do not match: {len(self.ids)} != {len(self.class_names)}"
+        assert len(self.ids) == len(self.class_names), (
+            f"Number of IDs and class names do not match: {len(self.ids)} != {len(self.class_names)}"
+        )
 
         logger.info(f"Model loaded successfully ({self.num_classes} classes)")
 
         # Print the each node in model and node name
         for name, param in self.ast_model.named_parameters():
             logger.info(f"name: {name}, shape: {param.shape}")
-            logger.info(f"-" * 50)
+            logger.info("-" * 50)
 
         # self.freeze_model()
 

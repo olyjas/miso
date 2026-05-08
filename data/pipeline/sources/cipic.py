@@ -15,6 +15,7 @@ class CIPICSource(BaseSource):
             return
         print("  Loading from HF: ooshyun/fine_grained_soundscape_control (cipic) ...")
         from huggingface_hub import snapshot_download
+
         tmp = raw_dir / "_hf_download_cipic"
         snapshot_download(
             repo_id="ooshyun/fine_grained_soundscape_control",

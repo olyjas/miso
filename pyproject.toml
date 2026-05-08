@@ -1,0 +1,28 @@
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+extend-exclude = [
+    "third_party",
+    "tmp",
+    "runs",
+    "lightning_logs",
+    "eval_results",
+    "reviewer_output",
+    "pdf",
+    ".venv*",
+    "data/BinauralCuratedDataset*",
+]
+
+[tool.ruff.lint]
+# PEP 8 (E, W) + pyflakes (F)
+select = ["E", "W", "F"]
+ignore = [
+    # Long lines: many exist in scientific code with long URLs/refs.
+    # Format will break what it can; the rest is intentional.
+    "E501",
+]
+
+[tool.ruff.format]
+# Black-compatible defaults; PEP 8 quotes (double).
+quote-style = "double"
+indent-style = "space"

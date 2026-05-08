@@ -1,8 +1,9 @@
-import os, glob
+import os
 import subprocess
 import argparse
 from tqdm import tqdm
-import yaml, json
+import yaml
+import json
 import typing
 import pandas as pd
 import random
@@ -234,19 +235,19 @@ def get_subtree(_id, ontology):
 
     return subtree
 
-def main(datasets_dir,
-         class_definitions,
-         ontology,
-         fg_output_dir,
-         bg_output_dir,
-         dry_run):
+
+def main(
+    datasets_dir, class_definitions, ontology, fg_output_dir, bg_output_dir, dry_run
+):
     datasets = ["FSD50K", "ESC-50", "musdb18", "disco_noises"]
     dataset_types = ["train", "val", "test"]
 
     for dset in datasets:
         print(f"Collecting dataset {dset}...")
         collector_name = (
-            "src/datasets/gen/compile/" + dset.replace("-", "").lower() + "_label_collector.py"
+            "src/datasets/gen/compile/"
+            + dset.replace("-", "").lower()
+            + "_label_collector.py"
         )
         subprocess.run(["python", collector_name])
 
@@ -292,9 +293,12 @@ def analyze_dataset():
     for dset in datasets:
         print(f"Collecting dataset {dset}...")
         collector_name = (
-            "src/datasets/gen/compile/" + dset.replace("-", "").lower() + "_label_collector.py"
+            "src/datasets/gen/compile/"
+            + dset.replace("-", "").lower()
+            + "_label_collector.py"
         )
         subprocess.run(["python", collector_name])
+
 
 if __name__ == "__main__":
     random.seed(0)
@@ -342,8 +346,11 @@ if __name__ == "__main__":
     if args.analyze_dataset:
         analyze_dataset()
     else:
-        main(datasets_dir=args.datasets_dir,
+        main(
+            datasets_dir=args.datasets_dir,
             class_definitions=args.class_definitions,
             ontology=args.ontology,
             fg_output_dir=args.fg_output_dir,
-            bg_output_dir=args.bg_output_dir, dry_run=args.dry_run)
+            bg_output_dir=args.bg_output_dir,
+            dry_run=args.dry_run,
+        )

@@ -8,8 +8,6 @@ except ImportError:
     plt = None
 
 import random
-import torch
-import torchaudio
 
 from src.datasets.multi_ch_simulator import CIPICSimulator
 
@@ -64,9 +62,9 @@ class MotionSimulator:
         self._call("simulator_set_hrtf", self.hrtf_file)
 
     def add_source(self, data: np.ndarray, path: np.ndarray):
-        assert (len(path.shape) == 2) and (
-            path.shape[1] == 3
-        ), f"Path must have a shape (N, 3), found {path.shape}"
+        assert (len(path.shape) == 2) and (path.shape[1] == 3), (
+            f"Path must have a shape (N, 3), found {path.shape}"
+        )
 
         num_points = path.shape[0]
         num_audio_samples = data.shape[-1]
@@ -456,7 +454,6 @@ def test_bindings():
 def test_simulator():
     import librosa
     from scipy.io.wavfile import write as wavwrite
-    import time
     import matplotlib.pyplot as plt
 
     def read_audio_file(file_path, sr):
@@ -519,7 +516,6 @@ def test_simulator():
 def test_front_facing():
     import librosa
     from scipy.io.wavfile import write as wavwrite
-    import time
 
     def read_audio_file(file_path, sr):
         """

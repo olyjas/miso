@@ -10,6 +10,7 @@ def _import_attr(name):
     """Dynamically import a class/function from a dotted path string."""
     module_path, _, attr_name = name.rpartition(".")
     import importlib
+
     module = importlib.import_module(module_path)
     return getattr(module, attr_name)
 
@@ -173,7 +174,9 @@ class Net(nn.Module):
         # Drop samples from previous chunks and from pad
         if self.stft_pad_size > 0:
             x = x[
-                :, :, -T * self.stft_chunk_size - self.stft_pad_size : -self.stft_pad_size
+                :,
+                :,
+                -T * self.stft_chunk_size - self.stft_pad_size : -self.stft_pad_size,
             ]
         else:
             x = x[:, :, -T * self.stft_chunk_size :]

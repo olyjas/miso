@@ -3,7 +3,6 @@
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 
 def get_project_root() -> Path:
@@ -69,8 +68,7 @@ class DatasetPaths:
 
     dataset_root: str = "/scr"
     dataset_dir: str = (
-        "/mmfs1/gscratch/intelligentsystems/common_datasets/"
-        "SemanticListening/"
+        "/mmfs1/gscratch/intelligentsystems/common_datasets/SemanticListening/"
     )
     dataset_name: str = "BinauralCuratedDataset.tar"
 
@@ -121,9 +119,7 @@ class DatasetPaths:
             self.noise_scaper_fmt_path,
         ]
 
-        missing_paths = [
-            path for path in required_paths if not os.path.exists(path)
-        ]
+        missing_paths = [path for path in required_paths if not os.path.exists(path)]
 
         return (len(missing_paths) == 0, missing_paths)
 
@@ -141,8 +137,7 @@ def get_default_dataset_paths() -> DatasetPaths:
     dataset_root = os.getenv("DATASET_ROOT", "/scr")
     dataset_dir = os.getenv(
         "DATASET_DIR",
-        "/mmfs1/gscratch/intelligentsystems/common_datasets/"
-        "SemanticListening/",
+        "/mmfs1/gscratch/intelligentsystems/common_datasets/SemanticListening/",
     )
     dataset_name = os.getenv("DATASET_NAME", "BinauralCuratedDataset.tar")
 
@@ -181,9 +176,7 @@ def get_dataset_root() -> str:
     return os.getenv("DATASET_ROOT", "/scr")
 
 
-def get_split_paths(
-    config: dict, dataset_root: str, split: str
-) -> dict[str, str]:
+def get_split_paths(config: dict, dataset_root: str, split: str) -> dict[str, str]:
     """
     Get foreground and noise paths for a specific data split.
 
@@ -198,9 +191,7 @@ def get_split_paths(
     split_config = config[f"onflight_{split}_data_args"]
 
     return {
-        "fg_sounds_dir": os.path.join(
-            dataset_root, split_config["fg_sounds_dir"]
-        ),
+        "fg_sounds_dir": os.path.join(dataset_root, split_config["fg_sounds_dir"]),
         "noise_sounds_dir": os.path.join(
             dataset_root, split_config["noise_sounds_dir"]
         ),

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Unified dataset setup: download -> collect -> prepare."""
+
 from __future__ import annotations
 import argparse
 import sys
@@ -11,24 +12,48 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 def main() -> None:
     parser = argparse.ArgumentParser(description="Setup datasets for training.")
     parser.add_argument("--output_dir", type=Path, required=True)
-    parser.add_argument("--datasets", type=str, default=None,
-                        help="Comma-separated: fsd50k,esc50,disco,cipic,musdb18,tau. Default: all")
-    parser.add_argument("--stage", choices=["download", "collect", "prepare", "all"],
-                        default="all")
-    parser.add_argument("--manual_dir", type=Path, default=None,
-                        help="Path to manually downloaded datasets (musdb18, TAU-2019)")
-    parser.add_argument("--reference_dir", type=Path, default=None,
-                        help="Path to reference CSV splits (skips collect, uses exact same splits)")
+    parser.add_argument(
+        "--datasets",
+        type=str,
+        default=None,
+        help="Comma-separated: fsd50k,esc50,disco,cipic,musdb18,tau. Default: all",
+    )
+    parser.add_argument(
+        "--stage", choices=["download", "collect", "prepare", "all"], default="all"
+    )
+    parser.add_argument(
+        "--manual_dir",
+        type=Path,
+        default=None,
+        help="Path to manually downloaded datasets (musdb18, TAU-2019)",
+    )
+    parser.add_argument(
+        "--reference_dir",
+        type=Path,
+        default=None,
+        help="Path to reference CSV splits (skips collect, uses exact same splits)",
+    )
     parser.add_argument("--dry-run", action="store_true")
-    parser.add_argument("--allow-missing", action="store_true",
-                        help="Skip sources with missing raw data instead of failing")
+    parser.add_argument(
+        "--allow-missing",
+        action="store_true",
+        help="Skip sources with missing raw data instead of failing",
+    )
     args = parser.parse_args()
 
     ds = [d.strip() for d in args.datasets.split(",")] if args.datasets else None
 
     from pipeline import run
-    run(args.output_dir, args.stage, ds, args.manual_dir, args.reference_dir,
-        args.dry_run, allow_missing=args.allow_missing)
+
+    run(
+        args.output_dir,
+        args.stage,
+        ds,
+        args.manual_dir,
+        args.reference_dir,
+        args.dry_run,
+        allow_missing=args.allow_missing,
+    )
 
 
 if __name__ == "__main__":
