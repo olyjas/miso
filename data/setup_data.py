@@ -20,12 +20,15 @@ def main() -> None:
     parser.add_argument("--reference_dir", type=Path, default=None,
                         help="Path to reference CSV splits (skips collect, uses exact same splits)")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--allow-missing", action="store_true",
+                        help="Skip sources with missing raw data instead of failing")
     args = parser.parse_args()
 
     ds = [d.strip() for d in args.datasets.split(",")] if args.datasets else None
 
     from pipeline import run
-    run(args.output_dir, args.stage, ds, args.manual_dir, args.reference_dir, args.dry_run)
+    run(args.output_dir, args.stage, ds, args.manual_dir, args.reference_dir,
+        args.dry_run, allow_missing=args.allow_missing)
 
 
 if __name__ == "__main__":

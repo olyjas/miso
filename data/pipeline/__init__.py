@@ -17,6 +17,7 @@ def run(
     manual_dir: Path | None = None,
     reference_dir: Path | None = None,
     dry_run: bool = False,
+    allow_missing: bool = False,
 ) -> None:
     # Match original prepare.py seed for reproducible splits
     random.seed(0)
@@ -40,7 +41,8 @@ def run(
             run_download(sources, raw_dir, manual_dir, dry_run)
         elif s == "collect":
             from .collect import run_collect
-            run_collect(sources, raw_dir, curated_dir, reference_dir)
+            run_collect(sources, raw_dir, curated_dir, reference_dir,
+                        allow_missing=allow_missing)
         elif s == "prepare":
             from .prepare import run_prepare
             run_prepare(curated_dir, raw_dir, output_dir, ontology, data_dir)
