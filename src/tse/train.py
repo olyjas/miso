@@ -65,6 +65,7 @@ def _build_datasets(cfg: dict, data_dir: str | None = None):
         hrtf_type=d.get("hrtf_type", "CIPIC"),
         samples_per_epoch=d.get("samples_per_epoch", 20000),
         num_output_channels=m.get("num_output_channels", 1),
+        num_total_labels=m.get("speaker_dim", 20),
         task="tse",
     )
 

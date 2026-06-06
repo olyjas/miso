@@ -23,6 +23,10 @@ logs/
 raw_datasets/
 BinauralCuratedDataset/
 BinauralCuratedDataset_mini/
+data/MisoDataset/
+data/BinauralCuratedDataset
+.venv311/
+lightning_logs/
 outputs/
 eval_results/
 *.crt

@@ -402,14 +402,17 @@ class SoundscapeDataset(Dataset):
         # --- Ground truth target ---
         gt = torch.zeros((self.num_output_channels, mixture.shape[-1]))
         n_fg_actual = len(fg_labels)
-        for i in range(n_fg_actual):
-            bi_fg = bi_srcs[i]  # (2, T)
-            if self.task == "tse":
-                # Mono downmix of the binaural foreground source.
-                mono = np.mean(bi_fg, axis=0)
-                gt[i] = torch.from_numpy(mono).float()
-            else:
-                # SED: sum binaural fg into binaural target.
+
+        if self.task == "tse":
+            # Option B: target = clean background (everything except triggers)
+            bg_components = bi_srcs[n_fg_actual:]
+            background = sum(bg_components) + bi_noise
+            background_mono = np.mean(np.asarray(background), axis=0)
+            gt[0] = torch.from_numpy(background_mono).float()
+        else:
+            # SED: sum binaural fg into binaural target.
+            for i in range(n_fg_actual):
+                bi_fg = bi_srcs[i]  # (2, T)
                 gt += torch.from_numpy(np.asarray(bi_fg)).float()
 
         return mixture, gt, label_vector, fg_labels, n_fg_actual
