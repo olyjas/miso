@@ -25,6 +25,14 @@ BinauralCuratedDataset/
 BinauralCuratedDataset_mini/
 data/MisoDataset/
 data/BinauralCuratedDataset
+# Per-trigger data dirs are local symlink scaffolding (account-specific
+# absolute paths) — recreate with mkdir + ln -s pointing into MisoDataset.
+data/CoughOnly/
+data/HeavyBreathingOnly/
+data/TappingOnly/
+# Local patch for packages whose source files were purged from the
+# scrubbed Hyak filesystem inside the miso conda env.
+pylib_patch/
 .venv311/
 lightning_logs/
 outputs/

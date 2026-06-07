@@ -1,0 +1,63 @@
+model:
+  model_name: "src.tse.multiflim_guided_tfnet.MultiFiLMGuidedTFNet"
+  block_model_name: "src.tse.gridnet_block.GridNetBlock"
+  block_model_params:
+    hidden_channels: 64
+  num_input_channels: 2
+  num_output_channels: 1
+  stft_chunk_size: 96
+  stft_pad_size: 64
+  stft_back_pad: 96
+  num_layers: 6
+  latent_dim: 32
+  speaker_dim: 1
+  use_first_ln: true
+  embedding_params:
+    embedding_dim: 0
+    embedding_type: ""
+    embedding_activation: ""
+    embedding_init: ""
+  film_params:
+    film_positions: []
+    film_preset: "all"
+
+data:
+  sr: 16000
+  duration: 5
+  fg_dir: "scaper_fmt"
+  noise_dir: "noise_scaper_fmt"
+  hrtf_list: "hrtf/CIPIC/train_hrtf.txt"
+  hrtf_type: "CIPIC"
+  num_fg_range: [1, 1]
+  num_bg_range: [0, 0]
+  num_noise_range: [1, 1]
+  snr_range_fg: [5, 15]
+  snr_range_bg: [0, 10]
+  batch_size: 2
+  num_workers: 2
+  samples_per_epoch: 2000
+
+training:
+  backend: "lightning"
+  max_epochs: 50
+  grad_clip: 1.0
+  optimizer_name: "torch.optim.AdamW"
+  optimizer_params:
+    lr: 0.0001
+    weight_decay: 0.0
+  scheduler_name: "torch.optim.lr_scheduler.ReduceLROnPlateau"
+  scheduler_params:
+    factor: 0.5
+    patience: 5
+
+loss:
+  l1_ratio: 10
+
+evaluation:
+  metrics: ["si_sdri", "snri"]
+
+checkpointing:
+  monitor: "val/loss"
+  mode: "min"
+  save_dir: "runs/miso"
+  patience: 20
