@@ -33,13 +33,13 @@ data:
   num_noise_range: [1, 1]
   snr_range_fg: [5, 15]
   snr_range_bg: [0, 10]
-  batch_size: 2
+  batch_size: 8 # used for training overnight
   num_workers: 2
-  samples_per_epoch: 500
+  samples_per_epoch: 2000 # used for training overnight #500 # sanity check 
 
 training:
   backend: "lightning"
-  max_epochs: 30
+  max_epochs: 100 #10 # sanity check #50 # used for training overnight
   grad_clip: 1.0
   optimizer_name: "torch.optim.AdamW"
   optimizer_params:
@@ -52,12 +52,15 @@ training:
 
 loss:
   l1_ratio: 10
+  si_sdr_ratio: 0.05   # small weight — keeps freq loss dominant, adds phase signal
 
 evaluation:
   metrics: ["si_sdri", "snri"]
 
 checkpointing:
-  monitor: "val/loss"
-  mode: "min"
+  # monitor: "val/loss"
+  # mode: "min"
+  monitor: "val/si_sdri"   # save best checkpoint by the metric you actually care about
+  mode: "max"
   save_dir: "runs/miso"
   patience: 20
