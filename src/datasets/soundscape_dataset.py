@@ -157,7 +157,7 @@ class SoundscapeDataset(Dataset):
         self.num_total_labels = num_total_labels
         self.samples_per_epoch = samples_per_epoch
         self.task = task
-        self.pwr_threshold = -40
+        self.pwr_threshold = -60
         self.lufs_tolerance = 0.1
 
         # Augmentations

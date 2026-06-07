@@ -38,12 +38,11 @@ TRIGGER_CLASSES = [
 NUM_CLASSES = len(TRIGGER_CLASSES)
 
 
-def load_model(ckpt_path: str, device: torch.device):
+def load_model(ckpt_path: str, device: torch.device, cfg_path: str = "configs/tse/miso.yaml"):
     from src.tse.train import _build_model
     from src.trainer import normalize_state_dict
     import yaml
 
-    cfg_path = "configs/tse/miso.yaml"
     with open(cfg_path) as f:
         cfg = yaml.safe_load(f)
 
@@ -54,7 +53,8 @@ def load_model(ckpt_path: str, device: torch.device):
     model.to(device)
     model.eval()
     print(f"Loaded checkpoint: {ckpt_path}")
-    return model
+    speaker_dim = cfg.get("model", {}).get("speaker_dim", NUM_CLASSES)
+    return model, speaker_dim
 
 
 def load_audio(path: str, sr: int = 16000) -> np.ndarray:
@@ -91,8 +91,11 @@ def load_audio(path: str, sr: int = 16000) -> np.ndarray:
     return audio.astype(np.float32)
 
 
-def make_label_vector(triggers: list[str]) -> torch.Tensor:
-    vec = torch.zeros(NUM_CLASSES)
+def make_label_vector(triggers: list[str], speaker_dim: int = NUM_CLASSES) -> torch.Tensor:
+    if speaker_dim == 1:
+        # Single-class model: label is always [1.0] meaning "remove this trigger"
+        return torch.ones(1)
+    vec = torch.zeros(speaker_dim)
     for t in triggers:
         t = t.lower().strip()
         if t not in TRIGGER_CLASSES:
@@ -105,60 +108,41 @@ def make_label_vector(triggers: list[str]) -> torch.Tensor:
 def run_inference(
     model,
     audio_np: np.ndarray,   # (2, T)
-    label_vec: torch.Tensor, # (NUM_CLASSES,)
+    label_vec: torch.Tensor, # (speaker_dim,)
     device: torch.device,
     chunk_sec: float = 5.0,
     sr: int = 16000,
 ) -> np.ndarray:
-    """Run the model in overlapping chunks and return the output as (T,) mono."""
-    chunk_len = int(chunk_sec * sr)
-    hop = chunk_len // 2
+    """Run the model on the full audio at once (matches training behaviour)."""
     T = audio_np.shape[1]
+    x = torch.from_numpy(audio_np).unsqueeze(0).to(device)  # (1, 2, T)
 
-    # Pad so the last chunk is full
-    pad_len = (chunk_len - (T % chunk_len)) % chunk_len
-    padded = np.pad(audio_np, ((0, 0), (0, pad_len + chunk_len)))
-    total = padded.shape[1]
+    # Peak-normalise (same as training)
+    peak = x.abs().max()
+    if peak > 1e-6:
+        x = x / peak
 
-    out_buf = np.zeros(total, dtype=np.float32)
-    weight = np.zeros(total, dtype=np.float32)
-    hann = np.hanning(chunk_len).astype(np.float32)
-
-    label_vec = label_vec.to(device).unsqueeze(0)   # (1, NUM_CLASSES)
+    embedding = label_vec.to(device).unsqueeze(0)  # (1, speaker_dim)
+    inputs = {"mixture": x, "embedding": embedding}
 
     with torch.no_grad():
-        pos = 0
-        while pos + chunk_len <= total:
-            chunk = padded[:, pos : pos + chunk_len]   # (2, chunk_len)
-            x = torch.from_numpy(chunk).unsqueeze(0).to(device)  # (1, 2, chunk_len)
+        out = model(inputs)["output"]   # (1, 1, T)
 
-            # Peak-normalise chunk (same as training)
-            peak = x.abs().max()
-            if peak > 1e-6:
-                x = x / peak
+    out_mono = out[0, 0].cpu().numpy()  # (T,)
 
-            inputs = {"mixture": x, "embedding": label_vec}
-            out = model(inputs)["output"]   # (1, 1, chunk_len)
-            out_mono = out[0, 0].cpu().numpy()   # (chunk_len,)
+    print(f"Raw model output: min={out_mono.min():.6f} max={out_mono.max():.6f} std={out_mono.std():.6f}")
+    print(f"Peak scale factor: {peak.item():.6f}")
 
-            if peak.item() > 1e-6:
-                out_mono = out_mono * peak.item()
+    if peak.item() > 1e-6:
+        out_mono = out_mono * peak.item()
 
-            out_buf[pos : pos + chunk_len] += out_mono * hann
-            weight[pos : pos + chunk_len] += hann
-            pos += hop
-
-    # Normalise overlap-add
-    weight = np.maximum(weight, 1e-9)
-    out_buf /= weight
-
-    # Trim back to original length
-    return out_buf[:T]
+    return out_mono[:T]
 
 
 def main():
     parser = argparse.ArgumentParser(description="Remove misophonia triggers from audio")
     parser.add_argument("--ckpt", required=True, help="Path to .ckpt checkpoint")
+    parser.add_argument("--config", default="configs/tse/miso.yaml", help="Path to model config YAML")
     parser.add_argument("--input", required=True, help="Input audio file (WAV/FLAC)")
     parser.add_argument(
         "--trigger",
@@ -175,18 +159,23 @@ def main():
     device = torch.device("cpu" if args.cpu or not torch.cuda.is_available() else "cuda")
     print(f"Device: {device}")
 
-    model = load_model(args.ckpt, device)
+    model, speaker_dim = load_model(args.ckpt, device, cfg_path=args.config)
 
     print(f"Loading input: {args.input}")
     audio = load_audio(args.input, sr=args.sr)
     print(f"Input shape: {audio.shape}  ({audio.shape[1]/args.sr:.1f}s)")
 
-    label_vec = make_label_vector(args.trigger)
-    active = [TRIGGER_CLASSES[i] for i, v in enumerate(label_vec) if v > 0]
+    label_vec = make_label_vector(args.trigger, speaker_dim=speaker_dim)
+    active = args.trigger if speaker_dim == 1 else [TRIGGER_CLASSES[i] for i, v in enumerate(label_vec) if v > 0]
     print(f"Removing triggers: {active}  (label vector: {label_vec.tolist()})")
 
     print("Running inference...")
     output = run_inference(model, audio, label_vec, device, chunk_sec=args.chunk_sec, sr=args.sr)
+
+    # Normalize output to audible level (model output scale is arbitrary due to SI loss)
+    out_peak = np.abs(output).max()
+    if out_peak > 1e-8:
+        output = output / out_peak * 0.8
 
     sf.write(args.output, output, args.sr)
     print(f"Saved output: {args.output}")
