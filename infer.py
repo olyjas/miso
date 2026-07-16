@@ -117,9 +117,11 @@ def run_inference(
     T = audio_np.shape[1]
     x = torch.from_numpy(audio_np).unsqueeze(0).to(device)  # (1, 2, T)
 
-    # Peak-normalise (same as training)
+    # FIX: match training normalization (soundscape_dataset.py only normalizes if peak > 1,
+    # so inference must do the same — previously always normalized causing ~14x amplitude mismatch)
+    # OLD: if peak > 1e-6: x = x / peak
     peak = x.abs().max()
-    if peak > 1e-6:
+    if peak > 1.0:
         x = x / peak
 
     embedding = label_vec.to(device).unsqueeze(0)  # (1, speaker_dim)
@@ -133,7 +135,9 @@ def run_inference(
     print(f"Raw model output: min={out_mono.min():.6f} max={out_mono.max():.6f} std={out_mono.std():.6f}")
     print(f"Peak scale factor: {peak.item():.6f}")
 
-    if peak.item() > 1e-6:
+    # FIX: match training un-normalization (only undo scale if we actually applied it)
+    # OLD: if peak.item() > 1e-6: out_mono = out_mono * peak.item()
+    if peak.item() > 1.0:
         out_mono = out_mono * peak.item()
 
     return out_mono[:T]
@@ -173,10 +177,17 @@ def main():
     output = run_inference(model, audio, label_vec, device, chunk_sec=args.chunk_sec, sr=args.sr)
 
     # Normalize output to audible level (model output scale is arbitrary due to SI loss)
-    out_peak = np.abs(output).max()
-    if out_peak > 1e-8:
-        output = output / out_peak * 0.8
+    # out_peak = np.abs(output).max()
+    # if out_peak > 1e-8:
+    #     output = output / out_peak * 0.8
 
+    # Instead of normalizing the output to 80% peak regardless, 
+    # scaling it to match the input's loudness
+    input_rms = np.sqrt(np.mean(audio**2))
+    out_rms = np.sqrt(np.mean(output**2))
+    if out_rms > 1e-8:
+        output = output * (input_rms / out_rms)
+    
     sf.write(args.output, output, args.sr)
     print(f"Saved output: {args.output}")
 

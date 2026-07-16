@@ -33,6 +33,13 @@ data/BinauralCuratedDataset
 data/CoughOnly/
 data/HeavyBreathingOnly/
 data/TappingOnly/
+data/ChewingOnly/
+data/SneezingOnly/
+data/SnifflingOnly/
+data/raw/
+data/shared/
+inference_results/
+eval_results/
 # Local patch for packages whose source files were purged from the
 # scrubbed Hyak filesystem inside the miso conda env.
 pylib_patch/

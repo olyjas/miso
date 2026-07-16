@@ -33,13 +33,28 @@ data:
   num_noise_range: [1, 1]
   snr_range_fg: [5, 15]
   snr_range_bg: [0, 10]
+  augmentations:
+    - type: "src.datasets.augmentations.PitchAugmentation"
+      prob: 0.5
+      params:
+        min_pitch_shift: -200
+        max_pitch_shift: 200
+        sample_rate: 16000
+    - type: "src.datasets.augmentations.SpeedAugmentation"
+      prob: 0.5
+      params:
+        min_speed: 0.9
+        max_speed: 1.1
+        sample_rate: 16000
+    - type: "src.datasets.augmentations.WhitePinkBrownAugmentation"
+      prob: 0.3
   batch_size: 8 # used for training overnight
   num_workers: 2
-  samples_per_epoch: 2000 # used for training overnight #500 # sanity check 
+  samples_per_epoch: 5000 # used for training overnight #500 # sanity check
 
 training:
   backend: "lightning"
-  max_epochs: 100 #10 # sanity check #50 # used for training overnight
+  max_epochs: 150 #10 # sanity check #50 # used for training overnight
   grad_clip: 1.0
   optimizer_name: "torch.optim.AdamW"
   optimizer_params:
@@ -52,7 +67,7 @@ training:
 
 loss:
   l1_ratio: 10
-  si_sdr_ratio: 0.05   # small weight — keeps freq loss dominant, adds phase signal
+  si_sdr_ratio: 0.1 #0.05   # small weight — keeps freq loss dominant, adds phase signal
 
 evaluation:
   metrics: ["si_sdri", "snri"]
