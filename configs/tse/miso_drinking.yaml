@@ -54,7 +54,7 @@ data:
 
 training:
   backend: "lightning"
-  max_epochs: 20
+  max_epochs: 250
   grad_clip: 1.0
   optimizer_name: "torch.optim.AdamW"
   optimizer_params:
@@ -75,5 +75,5 @@ evaluation:
 checkpointing:
   monitor: "val/si_sdri"
   mode: "max"
-  save_dir: "runs/miso_sneezing_v2"
+  save_dir: "runs/miso_drinking"
   patience: 20

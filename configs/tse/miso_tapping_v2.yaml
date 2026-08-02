@@ -2,7 +2,7 @@ model:
   model_name: "src.tse.multiflim_guided_tfnet.MultiFiLMGuidedTFNet"
   block_model_name: "src.tse.gridnet_block.GridNetBlock"
   block_model_params:
-    hidden_channels: 64
+    hidden_channels: 32
   num_input_channels: 2
   num_output_channels: 1
   stft_chunk_size: 96
@@ -33,32 +33,17 @@ data:
   num_noise_range: [1, 1]
   snr_range_fg: [5, 15]
   snr_range_bg: [0, 10]
-  augmentations:
-    - type: "src.datasets.augmentations.PitchAugmentation"
-      prob: 0.5
-      params:
-        min_pitch_shift: -200
-        max_pitch_shift: 200
-        sample_rate: 16000
-    - type: "src.datasets.augmentations.SpeedAugmentation"
-      prob: 0.5
-      params:
-        min_speed: 0.9
-        max_speed: 1.1
-        sample_rate: 16000
-    - type: "src.datasets.augmentations.WhitePinkBrownAugmentation"
-      prob: 0.3
   batch_size: 8
-  num_workers: 2
+  num_workers: 4
   samples_per_epoch: 5000
 
 training:
   backend: "lightning"
-  max_epochs: 20
+  max_epochs: 100
   grad_clip: 1.0
   optimizer_name: "torch.optim.AdamW"
   optimizer_params:
-    lr: 0.0001
+    lr: 0.001
     weight_decay: 0.0
   scheduler_name: "torch.optim.lr_scheduler.ReduceLROnPlateau"
   scheduler_params:
@@ -67,13 +52,12 @@ training:
 
 loss:
   l1_ratio: 10
-  si_sdr_ratio: 0.1
 
 evaluation:
   metrics: ["si_sdri", "snri"]
 
 checkpointing:
-  monitor: "val/si_sdri"
-  mode: "max"
-  save_dir: "runs/miso_sneezing_v2"
+  monitor: "val/loss"
+  mode: "min"
+  save_dir: "runs/miso_tapping_v2"
   patience: 20

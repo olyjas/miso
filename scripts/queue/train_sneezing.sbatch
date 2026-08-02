@@ -7,7 +7,7 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=32G
 #SBATCH --gres=gpu:l40s:1
-#SBATCH --time=24:00:00
+#SBATCH --time=48:00:00
 #SBATCH --output=logs/training_sneezing_%j.log
 
 
@@ -17,4 +17,5 @@ cd /mmfs1/gscratch/intelligentsystems/vidya26/workspace/project/miso
 
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
-bash scripts/train/run_tse.sh data/SneezingOnly miso_sneezing
+bash scripts/train/run_tse.sh data/SneezingOnly miso_sneezing \
+    --init_from runs/miso_sneezing/best-epoch=230.ckpt
